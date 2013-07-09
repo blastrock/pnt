@@ -15,6 +15,10 @@ Maybe you would prefer writing it as::
 
     pnt::writef("The value is %0$+010d which is, in hexa, %0$#08x.\n", value);
 
+As a note, here is the output for 12345::
+
+    The value is +000012345 which is, in hexa, 0x003039.
+
 Features
 ========
 
@@ -24,6 +28,7 @@ Features
 - Fast
 - No dependencies apart from std headers
 - C++11-only compatible
+- Widechar compatible
 
 TODO:
 
