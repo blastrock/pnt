@@ -673,9 +673,14 @@ template <typename Streambuf>
 template <typename T>
 inline
 typename std::enable_if<std::is_floating_point<T>::value>::type
-  Formatter<Streambuf>::printByType(const _Formatter::FormatterItem&, T)
+  Formatter<Streambuf>::printByType(
+      const _Formatter::FormatterItem& fmt, T arg)
 {
-  FORMAT_ERROR(FormatError::NotImplemented);
+  _Formatter::FormatterItem fmt2 = fmt;
+  fmt2.formatChar = 'g';
+  fmt2.fixFlags();
+
+  printFloat(fmt2, arg);
 }
 
 template <typename Streambuf>
