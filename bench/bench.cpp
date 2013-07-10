@@ -150,6 +150,34 @@ int main()
       fmt.print("Positive value: %+12.8d, negative value: %+12.8d\n", i, -i);
   }
 
+  std::cerr << "double" << std::endl;
+
+  {
+    ScopedTimer t("printf");
+    for (double i = 0; i < nbPrints; i += 1)
+      printf("%g\n", i);
+  }
+
+  {
+    ScopedTimer t("cout");
+    for (double i = 0; i < nbPrints; i += 1)
+      std::cout << i << "\n";
+  }
+
+  {
+    ScopedTimer t("tinyformat");
+    for (double i = 0; i < nbPrints; i += 1)
+      tfm::format(std::cout, "%g", i);
+  }
+
+  {
+    FileStreambuf2 sb(stdout);
+    ScopedTimer t("pnt");
+    Formatter<FileStreambuf2> fmt(sb);
+    for (double i = 0; i < nbPrints; i += 1)
+      fmt.print("%g", i);
+  }
+
   return 0;
 }
 

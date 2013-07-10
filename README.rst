@@ -25,7 +25,7 @@ Features
 - Single header-only library
 - Type safe
 - No heap allocation (except for floats and unless a cast to std::string is needed)
-- Fast
+- Fast (except for floats)
 - No dependencies apart from std headers
 - C++11-only compatible
 - Widechar support
@@ -52,7 +52,7 @@ cout        1.01145
 tinyformat  1.45267
 =========== =================
 
-With ``"Positive value: %+12.8d, negative value: %+12.8d\n"`` (I couldn't translate this to cout, so cout uses 8 width only):
+With ``"Positive value: %+12.8d, negative value: %+12.8d\n"`` (I couldn't translate this to cout, so cout uses 8 width only, which explains why it is faster):
 
 =========== =================
 Function    Time (in seconds)
@@ -61,6 +61,17 @@ cout        2.57762
 printf      2.65869
 pnt         3.65454
 tinyformat  3.98099
+=========== =================
+
+With ``"%g"``:
+
+=========== =================
+Function    Time (in seconds)
+=========== =================
+printf      4.58373
+cout        6.55518
+tinyformat  6.83606
+pnt         12.3644
 =========== =================
 
 How to install
