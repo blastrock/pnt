@@ -32,7 +32,7 @@ Features
 
 TODO:
 
-- Floating point support
+- Floating point support (%g and %a not supported)
 - List formatting
 - Width and precision given as arguments
 

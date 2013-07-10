@@ -530,14 +530,12 @@ void Formatter<Streambuf>::printArg(unsigned int item,
       break;
     case 'e':
     case 'E':
-      FORMAT_ERROR(FormatError::NotImplemented);
-      break;
     case 'f':
     case 'F':
-      printFloat(fmt, arg1);
-      break;
     case 'g':
     case 'G':
+      printFloat(fmt, arg1);
+      break;
     case 'a':
     case 'A':
       FORMAT_ERROR(FormatError::NotImplemented);
@@ -988,11 +986,18 @@ typename std::enable_if<
     ss << std::setw(fmt.width);
   if (fmt.flags & _Formatter::FormatterItem::FLAG_FILL_ZERO)
     ss << std::internal << std::setfill('0');
+  if (fmt.flags & _Formatter::FormatterItem::FLAG_LEFT_JUSTIFY)
+    ss << std::left;
   switch (fmt.formatChar)
   {
     case 'f':
     case 'F':
       ss << std::fixed;
+      break;
+    case 'E':
+      ss << std::uppercase;
+    case 'e':
+      ss << std::scientific;
       break;
     default:
       // should not be here

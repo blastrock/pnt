@@ -309,6 +309,19 @@ TEST_CASE("float/%f/width and precision",
   testCase("aa  -3.5 bb", "aa %5.1f bb", -3.5);
   testCase("aa -03.5 bb", "aa %05.1f bb", -3.5);
   testCase("aa -3.50 bb", "aa %.2f bb", -3.5);
+  testCase("aa 3 bb", "aa %.0f bb", 3.);
+  testCase("aa 3   bb", "aa %-3.0f bb", 3.);
+}
+
+TEST_CASE("float/%e", "float argument with %e")
+{
+  testCase("aa 3.550000e+01 bb", "aa %e bb", 35.5);
+  testCase("aa 3.550000E+01 bb", "aa %E bb", 35.5);
+  testCase("aa -3.550000e+01 bb", "aa %e bb", -35.5);
+  testCase("aa -3e+00 bb", "aa %.0e bb", -3.);
+  testCase("aa   -3.550e+01 bb", "aa %12.3e bb", -35.5);
+  testCase("aa -003.550e+01 bb", "aa %012.3e bb", -35.5);
+  testCase("aa 3.550e+01    bb", "aa % -12.3e bb", 35.5);
 }
 
 TEST_CASE("s/multiarg/intonly", "%s with multiple arguments, only ints")
