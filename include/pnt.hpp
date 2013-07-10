@@ -34,42 +34,6 @@
 #include <stdexcept>
 #include <iostream>
 
-/*
-FormatString:
-    FormatStringItem*
-FormatStringItem:
-    '%%'
-    '%' Position Flags Width Precision FormatChar
-    '%(' FormatString '%)'
-    OtherCharacterExceptPercent
-Position:
-    empty
-    Integer '$'
-Flags:
-    empty
-    '-' Flags
-    '+' Flags
-    '#' Flags
-    '0' Flags
-    ' ' Flags
-Width:
-    empty
-    Integer
-    '*'
-Precision:
-    empty
-    '.'
-    '.' Integer
-    '.*'
-Integer:
-    Digit
-    Digit Integer
-Digit:
-    '0'|'1'|'2'|'3'|'4'|'5'|'6'|'7'|'8'|'9'
-FormatChar:
-    's'|'c'|'b'|'d'|'o'|'x'|'X'|'p'|'e'|'E'|'f'|'F'|'g'|'G'|'a'|'A'
-*/
-
 #ifdef FORMATTER_THROW_ON_ERROR
 #define FORMAT_ERROR(type) \
   throw FormatError(type)
