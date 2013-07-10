@@ -324,6 +324,16 @@ TEST_CASE("float/%e", "float argument with %e")
   testCase("aa 3.550e+01    bb", "aa % -12.3e bb", 35.5);
 }
 
+TEST_CASE("float/%g", "float argument with %g")
+{
+  testCase("aa 5E-09 bb", "aa %G bb", .000000005);
+  testCase("aa 5e-09 bb", "aa %g bb", .000000005);
+  testCase("aa 0.0005 bb", "aa %g bb", .0005);
+  testCase("aa 5 bb", "aa %g bb", 5.);
+  testCase("aa 5e+11 bb", "aa %g bb", 500000000000.);
+  testCase("aa 500000000000 bb", "aa %.500g bb", 500000000000.);
+}
+
 TEST_CASE("s/multiarg/intonly", "%s with multiple arguments, only ints")
 {
   testCase("aa 0 bb -10 ", "aa %s bb %s ", 0, -10);

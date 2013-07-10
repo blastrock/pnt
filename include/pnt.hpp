@@ -999,6 +999,10 @@ typename std::enable_if<
     case 'e':
       ss << std::scientific;
       break;
+    case 'G':
+      ss << std::uppercase;
+    case 'g':
+      break;
     default:
       // should not be here
       assert(false);
