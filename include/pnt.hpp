@@ -33,6 +33,8 @@
 #include <limits>
 #include <stdexcept>
 #include <iostream>
+#include <sstream>
+#include <iomanip>
 
 #ifdef FORMATTER_THROW_ON_ERROR
 #define FORMAT_ERROR(type) \
@@ -113,18 +115,36 @@ namespace _Formatter
       unsigned int precision;
       char formatChar;
 
-    protected:
       void fixFlags();
   };
 
   inline void FormatterItem::fixFlags()
   {
-    // no sign or space for non decimal and non binary and non %s
-    if (formatChar != 'd' && formatChar != 'b' && formatChar != 's')
-      flags &= ~(FLAG_SHOW_SIGN | FLAG_ADD_SPACE);
-    // no explicit base for decimal or binary
-    else
-      flags &= ~FLAG_EXPLICIT_BASE;
+    switch (formatChar)
+    {
+      case 'e':
+      case 'E':
+      case 'f':
+      case 'F':
+      case 'g':
+      case 'G':
+        // if precision is undefined for float, default to 6
+        if (precision == WIDTH_EMPTY)
+          precision = 6;
+        break;
+      case 'x':
+      case 'X':
+      case 'o':
+        // no sign or space for non decimal and non binary and non %s
+        flags &= ~(FLAG_SHOW_SIGN | FLAG_ADD_SPACE);
+        break;
+      case 'c':
+      case 'd':
+      case 'b':
+        // no explicit base for decimal, binary, char
+        flags &= ~FLAG_EXPLICIT_BASE;
+        break;
+    }
 
     // no space if sign
     if (flags & FLAG_SHOW_SIGN)
@@ -393,7 +413,16 @@ class Formatter
     template <unsigned int base, typename T>
     typename std::enable_if<
         !_Formatter::isIntegral<T>::value
-      >::type printUnsigned(const _Formatter::FormatterItem&, T);
+      >::type printUnsigned(const _Formatter::FormatterItem& fmt, T value);
+
+    template <typename T>
+    typename std::enable_if<
+        std::is_floating_point<T>::value
+      >::type printFloat(const _Formatter::FormatterItem& fmt, T value);
+    template <typename T>
+    typename std::enable_if<
+        !std::is_floating_point<T>::value
+      >::type printFloat(const _Formatter::FormatterItem& fmt, T value);
 };
 
 template <typename Streambuf>
@@ -501,8 +530,12 @@ void Formatter<Streambuf>::printArg(unsigned int item,
       break;
     case 'e':
     case 'E':
+      FORMAT_ERROR(FormatError::NotImplemented);
+      break;
     case 'f':
     case 'F':
+      printFloat(fmt, arg1);
+      break;
     case 'g':
     case 'G':
     case 'a':
@@ -937,6 +970,44 @@ inline
 typename std::enable_if<
     !_Formatter::isIntegral<T>::value
   >::type Formatter<Streambuf>::printUnsigned(
+      const _Formatter::FormatterItem&, T)
+{
+  FORMAT_ERROR(FormatError::IncompatibleType);
+}
+
+template <typename Streambuf>
+template <typename T>
+typename std::enable_if<
+    std::is_floating_point<T>::value
+  >::type Formatter<Streambuf>::printFloat(
+      const _Formatter::FormatterItem& fmt, T value)
+{
+  std::ostringstream ss;
+  ss << std::setprecision(fmt.precision);
+  if (fmt.width != _Formatter::FormatterItem::WIDTH_EMPTY)
+    ss << std::setw(fmt.width);
+  if (fmt.flags & _Formatter::FormatterItem::FLAG_FILL_ZERO)
+    ss << std::internal << std::setfill('0');
+  switch (fmt.formatChar)
+  {
+    case 'f':
+    case 'F':
+      ss << std::fixed;
+      break;
+    default:
+      // should not be here
+      assert(false);
+  }
+  ss << value;
+  std::string s = ss.str();
+  m_streambuf.sputn(s.c_str(), s.length());
+}
+
+template <typename Streambuf>
+template <typename T>
+typename std::enable_if<
+    !std::is_floating_point<T>::value
+  >::type Formatter<Streambuf>::printFloat(
       const _Formatter::FormatterItem&, T)
 {
   FORMAT_ERROR(FormatError::IncompatibleType);

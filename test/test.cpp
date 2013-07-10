@@ -297,6 +297,20 @@ TEST_CASE("pointer", "pointer argument")
   }
 }
 
+TEST_CASE("float/%f", "float argument with %f")
+{
+  testCase("aa 3.500000 bb", "aa %f bb", 3.5);
+  testCase("aa -3.500000 bb", "aa %f bb", -3.5);
+}
+
+TEST_CASE("float/%f/width and precision",
+    "float argument with %f, width and precision")
+{
+  testCase("aa  -3.5 bb", "aa %5.1f bb", -3.5);
+  testCase("aa -03.5 bb", "aa %05.1f bb", -3.5);
+  testCase("aa -3.50 bb", "aa %.2f bb", -3.5);
+}
+
 TEST_CASE("s/multiarg/intonly", "%s with multiple arguments, only ints")
 {
   testCase("aa 0 bb -10 ", "aa %s bb %s ", 0, -10);

@@ -24,11 +24,11 @@ Features
 
 - Single header-only library
 - Type safe
-- No heap allocation (unless a cast to std::string is needed)
+- No heap allocation (except for floats and unless a cast to std::string is needed)
 - Fast
 - No dependencies apart from std headers
 - C++11-only compatible
-- Widechar compatible
+- Widechar support
 
 TODO:
 
