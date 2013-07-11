@@ -7,6 +7,9 @@ What is pnt?
 
 pnt is a library to format text the printf way.
 
+Example 1 - integer formatting
+------------------------------
+
 If you are tired of lines like::
 
     std::cout << "The value is " << std::setw(10) << std::setfill('0') << std::showpos << std::internal << value << " which is, in hexa, " << std::setw(8) << std::setfill('0') << std::showbase << std::hex << value << '.' << std::endl;
@@ -18,6 +21,24 @@ Maybe you would prefer writing it as::
 As a note, here is the output for 12345::
 
     The value is +000012345 which is, in hexa, 0x003039.
+
+Example 2 - container formatting
+--------------------------------
+
+Now, let's do something more sexy::
+
+    pnt::writef("Here is the list: %([%#x]%|, %).\n", std::vector<int>{1, 2, 3, 4});
+
+Which would write out::
+
+    Here is the list: [0x1], [0x2], [0x3], [0x4].
+
+Okay, let's decompose this one.
+
+- The vector (or anything iterable) is formatted by what's between %( and %).
+- The %#x defines how we format the elements of the container.
+- The brackets are printed as-is.
+- What's after the %| is used as a separator
 
 Features
 ========
@@ -33,7 +54,7 @@ Features
 TODO:
 
 - %a and %A
-- List formatting
+- List formatting (nested lists and %s)
 - Width and precision given as arguments
 
 Benchmarks
@@ -131,8 +152,11 @@ The format string has the following grammar::
     FormatStringItem:
         '%%'
         '%' Position Flags Width Precision FormatChar
-        '%(' FormatString '%)'
+        '%' Position '(' FormatString Separator '%)'
         OtherCharacterExceptPercent
+    Separator:
+        empty
+        '%|' Chars
     Position:
         empty
         Integer '$'
@@ -178,12 +202,12 @@ Flag         Types affected         Semantics
 Width
 *****
 
-Specifies the minimum field width. If the width is a *, the next argument, which must be of type int, is taken as the width. If the width is negative, it is as if the - was given as a Flags character.
+Specifies the minimum field width. If the width is a \*, the next argument, which must be of type int, is taken as the width. If the width is negative, it is as if the - was given as a Flags character.
 
 Precision
 *********
 
-Gives the precision for numeric conversions. If the precision is a *, the next argument, which must be of type int, is taken as the precision. If it is negative, it is as if there was no Precision.
+Gives the precision for numeric conversions. If the precision is a \*, the next argument, which must be of type int, is taken as the precision. If it is negative, it is as if there was no Precision.
 
 FormatChar
 **********
@@ -219,6 +243,18 @@ FormatChar
     A floating point number is formatted in hexadecimal exponential notation 0xh.hhhhhhp±d. There is one hexadecimal digit before the decimal point, and as many after as specified by the Precision. If the Precision is zero, no decimal point is generated. If there is no Precision, as many hexadecimal digits as necessary to exactly represent the mantissa are generated. The exponent is written in as few digits as possible, but at least one, is in decimal, and represents a power of 2 as in h.hhhhhh*2±d. The exponent for zero is zero. The hexadecimal digits, x and p are in upper case if the FormatChar is upper case. 
 
 Floating point NaN's are formatted as nan if the FormatChar is lower case, or NAN if upper. Floating point infinities are formatted as inf or infinity if the FormatChar is lower case, or INF or INFINITY if upper. 
+
+Containers
+**********
+
+What we call here a container or an iterable is a class which defines begin and
+end. They are formated using %( and %). Only one formatter must be between %(
+and %). What's before this formatter will be repeated before each element,
+what's after will be used as a separator unless %| is used. If %| is used,
+anything between the formatter and %| will be repeated after each element and
+what's after %| will be used as a separator. '%' characters must be escaped
+when used as prefix or suffix but not when used as separator. Look at the
+examples.
 
 ::
 
