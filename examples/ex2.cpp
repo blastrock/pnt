@@ -7,6 +7,7 @@ int main()
 
   pnt::writef("The vector is %(%d, %).\n", v);
   pnt::writef("The vector is %(~%d~%|, %).\n", v);
+  pnt::writef("The vector is %(%%|%%%d%%|%%%| %).\n", v);
 
   return 0;
 }

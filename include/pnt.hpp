@@ -372,6 +372,7 @@ class Formatter
         const _Formatter::FormatterItem& fmt, unsigned int size);
     void printPostFill(
         const _Formatter::FormatterItem& fmt, unsigned int size);
+    void printWithEscape(const char_type* begin, const char_type* end);
 
     void printByType(const _Formatter::FormatterItem&, bool arg);
     void printByType(const _Formatter::FormatterItem&, char_type arg);
@@ -657,6 +658,23 @@ void Formatter<Streambuf>::printPostFill(
 }
 
 template <typename Streambuf>
+inline
+void Formatter<Streambuf>::printWithEscape(
+    const char_type* iter, const char_type* end)
+{
+  for (; iter < end; ++iter)
+    if (*iter == '%')
+    {
+      m_streambuf.sputc('%');
+      ++iter;
+      if (*iter != '%')
+        FORMAT_ERROR(FormatError::InvalidFormatter);
+    }
+    else
+      m_streambuf.sputc(*iter);
+}
+
+template <typename Streambuf>
 template <typename T>
 inline
 typename std::enable_if<
@@ -809,6 +827,7 @@ typename std::enable_if<_Formatter::is_iterable<T>::value>::type
   begin += 2;
   end -= 2;
 
+  bool percent = false;
   auto iter = begin;
   auto formatterPos = end;
   auto separatorPos = end;
@@ -826,8 +845,8 @@ typename std::enable_if<_Formatter::is_iterable<T>::value>::type
         switch (*iter)
         {
           case '%':
+            percent = true;
             ++iter;
-            FORMAT_ERROR(FormatError::NotImplemented);
             break;
           case '(':
             FORMAT_ERROR(FormatError::NotImplemented);
@@ -849,9 +868,8 @@ typename std::enable_if<_Formatter::is_iterable<T>::value>::type
     }
   }
 
-  // if no formatter is found, use %s
   if (formatterPos == end)
-    FORMAT_ERROR(FormatError::NotImplemented);
+    FORMAT_ERROR(FormatError::InvalidFormatter);
 
   _Formatter::StringFormatterItem<decltype(iter)> fmt;
   iter = formatterPos + 1;
@@ -868,9 +886,17 @@ typename std::enable_if<_Formatter::is_iterable<T>::value>::type
     else
       first = false;
 
-    m_streambuf.sputn(begin, formatterPos-begin);
+    if (percent)
+      printWithEscape(begin, formatterPos);
+    else
+      m_streambuf.sputn(begin, formatterPos-begin);
+
     printArg(fmt, item);
-    m_streambuf.sputn(iter, separatorPos-iter);
+
+    if (percent)
+      printWithEscape(iter, separatorPos);
+    else
+      m_streambuf.sputn(iter, separatorPos-iter);
   }
 }
 
