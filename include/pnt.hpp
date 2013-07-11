@@ -113,6 +113,7 @@ namespace _Formatter
 
 namespace _Formatter
 {
+  template <typename Iterator>
   class FormatterItem
   {
     public:
@@ -134,9 +135,22 @@ namespace _Formatter
       char formatChar;
 
       void fixFlags();
+
+      void handleFormatter(Iterator& iter);
+
+    private:
+      Iterator findIntegerEnd(Iterator iter);
+      unsigned int parseInt(Iterator iter);
+
+      void handlePosition(Iterator& iter);
+      void handleFlags(Iterator& iter);
+      void handleWidth(Iterator& iter);
+      void handlePrecision(Iterator& iter);
+      void handleFormatChar(Iterator& iter);
   };
 
-  inline void FormatterItem::fixFlags()
+  template <typename Iterator>
+  inline void FormatterItem<Iterator>::fixFlags()
   {
     switch (formatChar)
     {
@@ -174,24 +188,7 @@ namespace _Formatter
   }
 
   template <typename Iterator>
-  class StringFormatterItem : public FormatterItem
-  {
-    public:
-      void handleFormatter(Iterator& iter);
-
-    private:
-      Iterator findIntegerEnd(Iterator iter);
-      unsigned int parseInt(Iterator iter);
-
-      void handlePosition(Iterator& iter);
-      void handleFlags(Iterator& iter);
-      void handleWidth(Iterator& iter);
-      void handlePrecision(Iterator& iter);
-      void handleFormatChar(Iterator& iter);
-  };
-
-  template <typename Iterator>
-  inline Iterator StringFormatterItem<Iterator>::findIntegerEnd(
+  inline Iterator FormatterItem<Iterator>::findIntegerEnd(
       Iterator iter)
   {
     auto end = iter;
@@ -201,7 +198,7 @@ namespace _Formatter
   }
 
   template <typename Iterator>
-  inline unsigned int StringFormatterItem<Iterator>::parseInt(Iterator iter)
+  inline unsigned int FormatterItem<Iterator>::parseInt(Iterator iter)
   {
     unsigned int out = 0;
     for (; *iter >= '0' && *iter <= '9'; ++iter)
@@ -210,7 +207,7 @@ namespace _Formatter
   }
 
   template <typename Iterator>
-  inline void StringFormatterItem<Iterator>::handlePosition(Iterator& iter)
+  inline void FormatterItem<Iterator>::handlePosition(Iterator& iter)
   {
     auto end = findIntegerEnd(iter);
 
@@ -226,7 +223,7 @@ namespace _Formatter
   }
 
   template <typename Iterator>
-  inline void StringFormatterItem<Iterator>::handleFlags(Iterator& iter)
+  inline void FormatterItem<Iterator>::handleFlags(Iterator& iter)
   {
     flags = 0;
     while (true)
@@ -247,7 +244,7 @@ namespace _Formatter
   }
 
   template <typename Iterator>
-  inline void StringFormatterItem<Iterator>::handleWidth(Iterator& iter)
+  inline void FormatterItem<Iterator>::handleWidth(Iterator& iter)
   {
     if (*iter == '*')
     {
@@ -270,7 +267,7 @@ namespace _Formatter
   }
 
   template <typename Iterator>
-  inline void StringFormatterItem<Iterator>::handlePrecision(Iterator& iter)
+  inline void FormatterItem<Iterator>::handlePrecision(Iterator& iter)
   {
     if (*iter != '.')
     {
@@ -300,7 +297,7 @@ namespace _Formatter
   }
 
   template <typename Iterator>
-  inline void StringFormatterItem<Iterator>::handleFormatChar(Iterator& iter)
+  inline void FormatterItem<Iterator>::handleFormatChar(Iterator& iter)
   {
     switch (*iter)
     {
@@ -330,7 +327,7 @@ namespace _Formatter
   }
 
   template <typename Iterator>
-  inline void StringFormatterItem<Iterator>::handleFormatter(Iterator& iter)
+  inline void FormatterItem<Iterator>::handleFormatter(Iterator& iter)
   {
     handlePosition(iter);
     handleFlags(iter);
@@ -356,27 +353,29 @@ class Formatter
     void print(const char_type* format, Args... args);
 
   private:
+    typedef _Formatter::FormatterItem<const char_type*> FormatterItem;
+
     Streambuf& m_streambuf;
 
     template <typename... Args>
-    void printArgN(const _Formatter::FormatterItem& fmt, Args... args);
+    void printArgN(const FormatterItem& fmt, Args... args);
     template <typename Arg1, typename... Args>
-    void printArgN(unsigned int item, const _Formatter::FormatterItem& fmt,
+    void printArgN(unsigned int item, const FormatterItem& fmt,
         Arg1 arg1, Args... args);
-    void printArgN(unsigned int item, const _Formatter::FormatterItem& fmt);
+    void printArgN(unsigned int item, const FormatterItem& fmt);
 
     template <typename T>
-    void printArg(const _Formatter::FormatterItem& fmt, T arg);
+    void printArg(const FormatterItem& fmt, T arg);
 
     void printPreFill(
-        const _Formatter::FormatterItem& fmt, unsigned int size);
+        const FormatterItem& fmt, unsigned int size);
     void printPostFill(
-        const _Formatter::FormatterItem& fmt, unsigned int size);
+        const FormatterItem& fmt, unsigned int size);
     void printWithEscape(const char_type* begin, const char_type* end);
 
-    void printByType(const _Formatter::FormatterItem&, bool arg);
-    void printByType(const _Formatter::FormatterItem&, char_type arg);
-    void printByType(const _Formatter::FormatterItem&, const char_type* arg);
+    void printByType(const FormatterItem&, bool arg);
+    void printByType(const FormatterItem&, char_type arg);
+    void printByType(const FormatterItem&, const char_type* arg);
     template <typename T>
     typename std::enable_if<
         !std::is_integral<T>::value &&
@@ -384,23 +383,23 @@ class Formatter
         !std::is_convertible<T,
           std::basic_string<char_type, traits_type>>::value &&
         !std::is_pointer<T>::value
-      >::type printByType(const _Formatter::FormatterItem& fmt, T arg);
+      >::type printByType(const FormatterItem& fmt, T arg);
     template <typename T>
     typename std::enable_if<std::is_integral<T>::value>::type
-      printByType(const _Formatter::FormatterItem& fmt, T arg);
+      printByType(const FormatterItem& fmt, T arg);
     template <typename T>
     typename std::enable_if<std::is_pointer<T>::value>::type
-      printByType(const _Formatter::FormatterItem& fmt, T arg);
+      printByType(const FormatterItem& fmt, T arg);
     template <typename T>
     typename std::enable_if<std::is_floating_point<T>::value>::type
-      printByType(const _Formatter::FormatterItem& fmt, T arg);
+      printByType(const FormatterItem& fmt, T arg);
     template <typename T>
     typename std::enable_if<
         !std::is_floating_point<T>::value &&
         !std::is_integral<T>::value &&
         std::is_convertible<T, std::basic_string<typename Formatter::char_type,
       typename Formatter::traits_type>>::value
-      >::type printByType(const _Formatter::FormatterItem& fmt, T arg);
+      >::type printByType(const FormatterItem& fmt, T arg);
 
     template <typename Arg1, typename... Args>
     void printContainerN(unsigned int item,
@@ -417,47 +416,47 @@ class Formatter
 
     template <typename T>
     typename std::enable_if<std::is_convertible<T, char_type>::value>::type
-      printChar(const _Formatter::FormatterItem& fmt, T arg);
+      printChar(const FormatterItem& fmt, T arg);
     template <typename T>
     typename std::enable_if<!std::is_convertible<T, char_type>::value>::type
-      printChar(const _Formatter::FormatterItem& fmt, T arg);
+      printChar(const FormatterItem& fmt, T arg);
 
     template <typename T>
     typename std::enable_if<std::is_pointer<T>::value>::type
-      printPointer(const _Formatter::FormatterItem& fmt, T arg);
+      printPointer(const FormatterItem& fmt, T arg);
     template <typename T>
     typename std::enable_if<!std::is_pointer<T>::value>::type
-      printPointer(const _Formatter::FormatterItem& fmt, T arg);
+      printPointer(const FormatterItem& fmt, T arg);
 
     template <unsigned int base, typename T>
     typename std::enable_if<
         _Formatter::is_integral<T>::value
-      >::type printIntegral(const _Formatter::FormatterItem& fmt, T value);
+      >::type printIntegral(const FormatterItem& fmt, T value);
     template <unsigned int Tbase, typename T>
     std::size_t printIntegral(char_type* str,
-        const _Formatter::FormatterItem& fmt, T value);
+        const FormatterItem& fmt, T value);
     template <unsigned int base, typename T>
     typename std::enable_if<
         !_Formatter::is_integral<T>::value
-      >::type printIntegral(const _Formatter::FormatterItem& fmt, T value);
+      >::type printIntegral(const FormatterItem& fmt, T value);
 
     template <unsigned int base, typename T>
     typename std::enable_if<
         _Formatter::is_integral<T>::value
-      >::type printUnsigned(const _Formatter::FormatterItem& fmt, T value);
+      >::type printUnsigned(const FormatterItem& fmt, T value);
     template <unsigned int base, typename T>
     typename std::enable_if<
         !_Formatter::is_integral<T>::value
-      >::type printUnsigned(const _Formatter::FormatterItem& fmt, T value);
+      >::type printUnsigned(const FormatterItem& fmt, T value);
 
     template <typename T>
     typename std::enable_if<
         std::is_floating_point<T>::value
-      >::type printFloat(const _Formatter::FormatterItem& fmt, T value);
+      >::type printFloat(const FormatterItem& fmt, T value);
     template <typename T>
     typename std::enable_if<
         !std::is_floating_point<T>::value
-      >::type printFloat(const _Formatter::FormatterItem& fmt, T value);
+      >::type printFloat(const FormatterItem& fmt, T value);
 };
 
 template <typename Streambuf>
@@ -526,9 +525,9 @@ void Formatter<Streambuf>::print(const char_type* format, Args... args)
             break;
           default:
             {
-              _Formatter::StringFormatterItem<decltype(iter)> fmt;
+              FormatterItem fmt;
               fmt.handleFormatter(iter);
-              if (fmt.position == _Formatter::FormatterItem::POSITION_NONE)
+              if (fmt.position == FormatterItem::POSITION_NONE)
                 fmt.position = position;
               else
               {
@@ -554,7 +553,7 @@ void Formatter<Streambuf>::print(const char_type* format, Args... args)
 template <typename Streambuf>
 template <typename... Args>
 inline
-void Formatter<Streambuf>::printArgN(const _Formatter::FormatterItem& fmt,
+void Formatter<Streambuf>::printArgN(const FormatterItem& fmt,
     Args... args)
 {
   printArgN(fmt.position, fmt, args...);
@@ -564,7 +563,7 @@ template <typename Streambuf>
 template <typename Arg1, typename... Args>
 inline
 void Formatter<Streambuf>::printArgN(unsigned int item,
-    const _Formatter::FormatterItem& fmt, Arg1 arg1, Args... args)
+    const FormatterItem& fmt, Arg1 arg1, Args... args)
 {
   if (item)
     return printArgN(item-1, fmt, args...);
@@ -576,7 +575,7 @@ template <typename Streambuf>
 template <typename T>
 inline
 void Formatter<Streambuf>::printArg(
-    const _Formatter::FormatterItem& fmt, T arg)
+    const FormatterItem& fmt, T arg)
 {
   switch (fmt.formatChar)
   {
@@ -624,7 +623,7 @@ void Formatter<Streambuf>::printArg(
 template <typename Streambuf>
 inline
 void Formatter<Streambuf>::printArgN(unsigned int,
-    const _Formatter::FormatterItem&)
+    const FormatterItem&)
 {
   FORMAT_ERROR(FormatError::TooFewArguments);
 }
@@ -632,13 +631,13 @@ void Formatter<Streambuf>::printArgN(unsigned int,
 template <typename Streambuf>
 inline
 void Formatter<Streambuf>::printPreFill(
-    const _Formatter::FormatterItem& fmt, unsigned int size)
+    const FormatterItem& fmt, unsigned int size)
 {
-  if (fmt.width == _Formatter::FormatterItem::WIDTH_EMPTY)
+  if (fmt.width == FormatterItem::WIDTH_EMPTY)
     return;
 
   size = fmt.width - size;
-  if (!(fmt.flags & _Formatter::FormatterItem::FLAG_LEFT_JUSTIFY))
+  if (!(fmt.flags & FormatterItem::FLAG_LEFT_JUSTIFY))
     while (size--)
       m_streambuf.sputc(' ');
 }
@@ -646,13 +645,13 @@ void Formatter<Streambuf>::printPreFill(
 template <typename Streambuf>
 inline
 void Formatter<Streambuf>::printPostFill(
-    const _Formatter::FormatterItem& fmt, unsigned int size)
+    const FormatterItem& fmt, unsigned int size)
 {
-  if (fmt.width == _Formatter::FormatterItem::WIDTH_EMPTY)
+  if (fmt.width == FormatterItem::WIDTH_EMPTY)
     return;
 
   size = fmt.width - size;
-  if (fmt.flags & _Formatter::FormatterItem::FLAG_LEFT_JUSTIFY)
+  if (fmt.flags & FormatterItem::FLAG_LEFT_JUSTIFY)
     while (size--)
       m_streambuf.sputc(' ');
 }
@@ -685,7 +684,7 @@ typename std::enable_if<
         typename Formatter<Streambuf>::traits_type>>::value &&
     !std::is_pointer<T>::value
   >::type Formatter<Streambuf>::printByType(
-      const _Formatter::FormatterItem&, T)
+      const FormatterItem&, T)
 {
   FORMAT_ERROR(FormatError::IncompatibleType);
 }
@@ -693,7 +692,7 @@ typename std::enable_if<
 template <typename Streambuf>
 inline
 void Formatter<Streambuf>::printByType(
-    const _Formatter::FormatterItem& fmt, bool arg)
+    const FormatterItem& fmt, bool arg)
 {
   static const char_type t[] =
     {'t', 'r', 'u', 'e'};
@@ -713,7 +712,7 @@ void Formatter<Streambuf>::printByType(
 template <typename Streambuf>
 inline
 void Formatter<Streambuf>::printByType(
-    const _Formatter::FormatterItem& fmt, char_type arg)
+    const FormatterItem& fmt, char_type arg)
 {
   printChar(fmt, arg);
 }
@@ -721,7 +720,7 @@ void Formatter<Streambuf>::printByType(
 template <typename Streambuf>
 inline
 void Formatter<Streambuf>::printByType(
-    const _Formatter::FormatterItem& fmt, const char_type* arg)
+    const FormatterItem& fmt, const char_type* arg)
 {
   // calculate size
   std::size_t size;
@@ -745,7 +744,7 @@ template <typename T>
 inline
 typename std::enable_if<std::is_integral<T>::value>::type
   Formatter<Streambuf>::printByType(
-      const _Formatter::FormatterItem& fmt, T arg)
+      const FormatterItem& fmt, T arg)
 {
   printIntegral<10>(fmt, arg);
 }
@@ -755,7 +754,7 @@ template <typename T>
 inline
 typename std::enable_if<std::is_pointer<T>::value>::type
   Formatter<Streambuf>::printByType(
-      const _Formatter::FormatterItem& fmt, T arg)
+      const FormatterItem& fmt, T arg)
 {
   printPointer(fmt, arg);
 }
@@ -765,9 +764,9 @@ template <typename T>
 inline
 typename std::enable_if<std::is_floating_point<T>::value>::type
   Formatter<Streambuf>::printByType(
-      const _Formatter::FormatterItem& fmt, T arg)
+      const FormatterItem& fmt, T arg)
 {
-  _Formatter::FormatterItem fmt2 = fmt;
+  FormatterItem fmt2 = fmt;
   fmt2.formatChar = 'g';
   fmt2.fixFlags();
 
@@ -785,7 +784,7 @@ typename std::enable_if<
       typename Formatter<Streambuf>::char_type,
       typename Formatter<Streambuf>::traits_type>>::value
   >::type Formatter<Streambuf>::printByType(
-      const _Formatter::FormatterItem& fmt, T arg)
+      const FormatterItem& fmt, T arg)
 {
   std::basic_string<
       typename Formatter<Streambuf>::char_type,
@@ -871,7 +870,7 @@ typename std::enable_if<_Formatter::is_iterable<T>::value>::type
   if (formatterPos == end)
     FORMAT_ERROR(FormatError::InvalidFormatter);
 
-  _Formatter::StringFormatterItem<decltype(iter)> fmt;
+  FormatterItem fmt;
   iter = formatterPos + 1;
   fmt.handleFormatter(iter);
 
@@ -914,7 +913,7 @@ template <typename T>
 inline
 typename std::enable_if<std::is_convertible<T,
     typename Formatter<Streambuf>::char_type>::value>::type
-  Formatter<Streambuf>::printChar(const _Formatter::FormatterItem& fmt, T arg)
+  Formatter<Streambuf>::printChar(const FormatterItem& fmt, T arg)
 {
   printPreFill(fmt, 1);
 
@@ -928,7 +927,7 @@ template <typename T>
 inline
 typename std::enable_if<!std::is_convertible<T,
     typename Formatter<Streambuf>::char_type>::value>::type
-  Formatter<Streambuf>::printChar(const _Formatter::FormatterItem&, T)
+  Formatter<Streambuf>::printChar(const FormatterItem&, T)
 {
   FORMAT_ERROR(FormatError::IncompatibleType);
 }
@@ -937,11 +936,11 @@ template <typename Streambuf>
 template <typename T>
 inline
 typename std::enable_if<std::is_pointer<T>::value>::type
-  Formatter<Streambuf>::printPointer(const _Formatter::FormatterItem& fmt, T arg)
+  Formatter<Streambuf>::printPointer(const FormatterItem& fmt, T arg)
 {
-  _Formatter::FormatterItem fmt2 = fmt;
+  FormatterItem fmt2 = fmt;
 
-  fmt2.flags = _Formatter::FormatterItem::FLAG_EXPLICIT_BASE;
+  fmt2.flags = FormatterItem::FLAG_EXPLICIT_BASE;
   fmt2.precision = sizeof(void*) * 2;
   fmt2.formatChar = 'x';
 
@@ -952,7 +951,7 @@ template <typename Streambuf>
 template <typename T>
 inline
 typename std::enable_if<!std::is_pointer<T>::value>::type
-  Formatter<Streambuf>::printPointer(const _Formatter::FormatterItem& fmt, T arg)
+  Formatter<Streambuf>::printPointer(const FormatterItem& fmt, T arg)
 {
   FORMAT_ERROR(FormatError::IncompatibleType);
 }
@@ -981,7 +980,7 @@ template <unsigned int Tbase, typename T>
 typename std::enable_if<
     _Formatter::is_integral<T>::value
   >::type Formatter<Streambuf>::printIntegral(
-      const _Formatter::FormatterItem& fmt, T value)
+      const FormatterItem& fmt, T value)
 {
   // convert the number
 
@@ -992,11 +991,11 @@ typename std::enable_if<
 
   unsigned int zerofill;
 
-  if (fmt.precision == _Formatter::FormatterItem::WIDTH_ARG)
+  if (fmt.precision == FormatterItem::WIDTH_ARG)
   {
     FORMAT_ERROR(FormatError::NotImplemented);
   }
-  else if (fmt.precision == _Formatter::FormatterItem::WIDTH_EMPTY)
+  else if (fmt.precision == FormatterItem::WIDTH_EMPTY)
     zerofill = 1;
   else
     zerofill = fmt.precision;
@@ -1009,10 +1008,10 @@ typename std::enable_if<
   // calculate size
 
   if ((_Formatter::isNegative(value) && fmt.formatChar == 'd') ||
-      (fmt.flags & _Formatter::FormatterItem::FLAG_SHOW_SIGN) ||
-      (fmt.flags & _Formatter::FormatterItem::FLAG_ADD_SPACE))
+      (fmt.flags & FormatterItem::FLAG_SHOW_SIGN) ||
+      (fmt.flags & FormatterItem::FLAG_ADD_SPACE))
     ++size;
-  else if (fmt.flags & _Formatter::FormatterItem::FLAG_EXPLICIT_BASE)
+  else if (fmt.flags & FormatterItem::FLAG_EXPLICIT_BASE)
     switch (fmt.formatChar)
     {
       case 'x': 
@@ -1031,11 +1030,11 @@ typename std::enable_if<
   // get width and calculate needed fill size
 
   unsigned int fill;
-  if (fmt.width == _Formatter::FormatterItem::WIDTH_ARG)
+  if (fmt.width == FormatterItem::WIDTH_ARG)
   {
     FORMAT_ERROR(FormatError::NotImplemented);
   }
-  else if (fmt.width == _Formatter::FormatterItem::WIDTH_EMPTY)
+  else if (fmt.width == FormatterItem::WIDTH_EMPTY)
     fill = 0;
   else
     fill = fmt.width;
@@ -1048,14 +1047,14 @@ typename std::enable_if<
 
   // fill before sign (with spaces)
 
-  if (!(fmt.flags & _Formatter::FormatterItem::FLAG_FILL_ZERO) &&
-      !(fmt.flags & _Formatter::FormatterItem::FLAG_LEFT_JUSTIFY))
+  if (!(fmt.flags & FormatterItem::FLAG_FILL_ZERO) &&
+      !(fmt.flags & FormatterItem::FLAG_LEFT_JUSTIFY))
     for (unsigned int i = 0; i < fill; ++i)
       m_streambuf.sputc(' ');
 
   // show sign or base
 
-  if (fmt.flags & _Formatter::FormatterItem::FLAG_EXPLICIT_BASE)
+  if (fmt.flags & FormatterItem::FLAG_EXPLICIT_BASE)
     switch (fmt.formatChar)
     {
       case 'x':
@@ -1081,13 +1080,13 @@ typename std::enable_if<
     }
   else if (_Formatter::isNegative(value))
     m_streambuf.sputc('-');
-  else if (fmt.flags & _Formatter::FormatterItem::FLAG_SHOW_SIGN)
+  else if (fmt.flags & FormatterItem::FLAG_SHOW_SIGN)
     m_streambuf.sputc('+');
-  else if (fmt.flags & _Formatter::FormatterItem::FLAG_ADD_SPACE)
+  else if (fmt.flags & FormatterItem::FLAG_ADD_SPACE)
     m_streambuf.sputc(' ');
 
   // fill after sign (with zeros)
-  if (fmt.flags & _Formatter::FormatterItem::FLAG_FILL_ZERO)
+  if (fmt.flags & FormatterItem::FLAG_FILL_ZERO)
     zerofill += fill;
 
   for (unsigned int i = 0; i < zerofill; ++i)
@@ -1097,7 +1096,7 @@ typename std::enable_if<
 
   m_streambuf.sputn(buf+sizeof(buf)-numsize, numsize);
 
-  if (fmt.flags & _Formatter::FormatterItem::FLAG_LEFT_JUSTIFY)
+  if (fmt.flags & FormatterItem::FLAG_LEFT_JUSTIFY)
     for (unsigned int i = 0; i < fill; ++i)
       m_streambuf.sputc(' ');
 }
@@ -1105,7 +1104,7 @@ typename std::enable_if<
 template <typename Streambuf>
 template <unsigned int Tbase, typename T>
 std::size_t Formatter<Streambuf>::printIntegral(char_type* str,
-    const _Formatter::FormatterItem& fmt, T value)
+    const FormatterItem& fmt, T value)
 {
   static_assert(Tbase == 2 || Tbase == 8 || Tbase == 10 || Tbase == 16,
       "unsupported base");
@@ -1153,7 +1152,7 @@ inline
 typename std::enable_if<
     !_Formatter::is_integral<T>::value
   >::type Formatter<Streambuf>::printIntegral(
-      const _Formatter::FormatterItem&, T)
+      const FormatterItem&, T)
 {
   FORMAT_ERROR(FormatError::IncompatibleType);
 }
@@ -1164,7 +1163,7 @@ inline
 typename std::enable_if<
     _Formatter::is_integral<T>::value
   >::type Formatter<Streambuf>::printUnsigned(
-      const _Formatter::FormatterItem& fmt, T value)
+      const FormatterItem& fmt, T value)
 {
   printIntegral<base, typename std::make_unsigned<T>::type>(fmt, value);
 }
@@ -1175,7 +1174,7 @@ inline
 typename std::enable_if<
     !_Formatter::is_integral<T>::value
   >::type Formatter<Streambuf>::printUnsigned(
-      const _Formatter::FormatterItem&, T)
+      const FormatterItem&, T)
 {
   FORMAT_ERROR(FormatError::IncompatibleType);
 }
@@ -1185,15 +1184,15 @@ template <typename T>
 typename std::enable_if<
     std::is_floating_point<T>::value
   >::type Formatter<Streambuf>::printFloat(
-      const _Formatter::FormatterItem& fmt, T value)
+      const FormatterItem& fmt, T value)
 {
   std::ostringstream ss;
   ss << std::setprecision(fmt.precision);
-  if (fmt.width != _Formatter::FormatterItem::WIDTH_EMPTY)
+  if (fmt.width != FormatterItem::WIDTH_EMPTY)
     ss << std::setw(fmt.width);
-  if (fmt.flags & _Formatter::FormatterItem::FLAG_FILL_ZERO)
+  if (fmt.flags & FormatterItem::FLAG_FILL_ZERO)
     ss << std::internal << std::setfill('0');
-  if (fmt.flags & _Formatter::FormatterItem::FLAG_LEFT_JUSTIFY)
+  if (fmt.flags & FormatterItem::FLAG_LEFT_JUSTIFY)
     ss << std::left;
   switch (fmt.formatChar)
   {
@@ -1224,7 +1223,7 @@ template <typename T>
 typename std::enable_if<
     !std::is_floating_point<T>::value
   >::type Formatter<Streambuf>::printFloat(
-      const _Formatter::FormatterItem&, T)
+      const FormatterItem&, T)
 {
   FORMAT_ERROR(FormatError::IncompatibleType);
 }
