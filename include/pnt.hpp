@@ -359,11 +359,14 @@ class Formatter
     Streambuf& m_streambuf;
 
     template <typename... Args>
-    void printArg(const _Formatter::FormatterItem& fmt, Args... args);
+    void printArgN(const _Formatter::FormatterItem& fmt, Args... args);
     template <typename Arg1, typename... Args>
-    void printArg(unsigned int item, const _Formatter::FormatterItem& fmt,
+    void printArgN(unsigned int item, const _Formatter::FormatterItem& fmt,
         Arg1 arg1, Args... args);
-    void printArg(unsigned int item, const _Formatter::FormatterItem& fmt);
+    void printArgN(unsigned int item, const _Formatter::FormatterItem& fmt);
+
+    template <typename T>
+    void printArg(const _Formatter::FormatterItem& fmt, T arg);
 
     void printPreFill(
         const _Formatter::FormatterItem& fmt, unsigned int size);
@@ -397,6 +400,19 @@ class Formatter
         std::is_convertible<T, std::basic_string<typename Formatter::char_type,
       typename Formatter::traits_type>>::value
       >::type printByType(const _Formatter::FormatterItem& fmt, T arg);
+
+    template <typename Arg1, typename... Args>
+    void printContainerN(unsigned int item,
+        const char_type* begin, const char_type* end, Arg1 arg1, Args... args);
+    void printContainerN(unsigned int item,
+        const char_type* begin, const char_type* end);
+
+    template <typename T>
+    typename std::enable_if<_Formatter::is_iterable<T>::value>::type
+      printContainer(const char_type* begin, const char_type* end, T arg);
+    template <typename T>
+    typename std::enable_if<!_Formatter::is_iterable<T>::value>::type
+      printContainer(const char_type* begin, const char_type* end, T arg);
 
     template <typename T>
     typename std::enable_if<std::is_convertible<T, char_type>::value>::type
@@ -475,7 +491,37 @@ void Formatter<Streambuf>::print(const char_type* format, Args... args)
             m_streambuf.sputc('%');
             break;
           case '(':
-            FORMAT_ERROR(FormatError::NotImplemented);
+            {
+              unsigned int level = 1;
+              auto endblock = iter+1;
+              while (level)
+              {
+                switch (*endblock)
+                {
+                  case '\0':
+                    FORMAT_ERROR(FormatError::InvalidFormatter);
+                    break;
+                  case '%':
+                    ++endblock;
+                    switch (*endblock)
+                    {
+                      case '(':
+                        ++level;
+                        break;
+                      case ')':
+                        --level;
+                        if (level == 0)
+                          printContainerN(position, iter-1, endblock+1, args...);
+                        break;
+                    }
+                    ++endblock;
+                    break;
+                  default:
+                    ++endblock;
+                }
+              }
+              iter = endblock;
+            }
             break;
           default:
             {
@@ -492,7 +538,7 @@ void Formatter<Streambuf>::print(const char_type* format, Args... args)
               if (!positional)
                 ++position;
 
-              printArg(fmt, args...);
+              printArgN(fmt, args...);
             }
             break;
         }
@@ -507,44 +553,53 @@ void Formatter<Streambuf>::print(const char_type* format, Args... args)
 template <typename Streambuf>
 template <typename... Args>
 inline
-void Formatter<Streambuf>::printArg(const _Formatter::FormatterItem& fmt,
+void Formatter<Streambuf>::printArgN(const _Formatter::FormatterItem& fmt,
     Args... args)
 {
-  printArg(fmt.position, fmt, args...);
+  printArgN(fmt.position, fmt, args...);
 }
 
 template <typename Streambuf>
 template <typename Arg1, typename... Args>
 inline
-void Formatter<Streambuf>::printArg(unsigned int item,
+void Formatter<Streambuf>::printArgN(unsigned int item,
     const _Formatter::FormatterItem& fmt, Arg1 arg1, Args... args)
 {
   if (item)
-    return printArg(item-1, fmt, args...);
+    return printArgN(item-1, fmt, args...);
 
+  printArg(fmt, arg1);
+}
+
+template <typename Streambuf>
+template <typename T>
+inline
+void Formatter<Streambuf>::printArg(
+    const _Formatter::FormatterItem& fmt, T arg)
+{
   switch (fmt.formatChar)
   {
     case 's':
-      printByType(fmt, arg1);
+      printByType(fmt, arg);
       break;
     case 'c':
-      printChar(fmt, arg1);
+      printChar(fmt, arg);
       break;
     case 'b':
-      printUnsigned<2>(fmt, arg1);
+      printUnsigned<2>(fmt, arg);
       break;
     case 'd':
-      printIntegral<10>(fmt, arg1);
+      printIntegral<10>(fmt, arg);
       break;
     case 'o':
-      printUnsigned<8>(fmt, arg1);
+      printUnsigned<8>(fmt, arg);
       break;
     case 'x':
     case 'X':
-      printUnsigned<16>(fmt, arg1);
+      printUnsigned<16>(fmt, arg);
       break;
     case 'p':
-      printPointer(fmt, arg1);
+      printPointer(fmt, arg);
       break;
     case 'e':
     case 'E':
@@ -552,7 +607,7 @@ void Formatter<Streambuf>::printArg(unsigned int item,
     case 'F':
     case 'g':
     case 'G':
-      printFloat(fmt, arg1);
+      printFloat(fmt, arg);
       break;
     case 'a':
     case 'A':
@@ -567,7 +622,7 @@ void Formatter<Streambuf>::printArg(unsigned int item,
 
 template <typename Streambuf>
 inline
-void Formatter<Streambuf>::printArg(unsigned int,
+void Formatter<Streambuf>::printArgN(unsigned int,
     const _Formatter::FormatterItem&)
 {
   FORMAT_ERROR(FormatError::TooFewArguments);
@@ -723,6 +778,94 @@ typename std::enable_if<
   m_streambuf.sputn(str.c_str(), str.length());
 
   printPostFill(fmt, str.length());
+}
+
+template <typename Streambuf>
+template <typename Arg1, typename... Args>
+inline
+void Formatter<Streambuf>::printContainerN(unsigned int item,
+    const char_type* begin, const char_type* end, Arg1 arg1, Args... args)
+{
+  if (item)
+    return printContainerN(item-1, begin, end, args...);
+
+  printContainer(begin, end, arg1);
+}
+
+template <typename Streambuf>
+inline
+void Formatter<Streambuf>::printContainerN(unsigned int item,
+    const char_type* begin, const char_type* end)
+{
+  FORMAT_ERROR(FormatError::TooFewArguments);
+}
+
+template <typename Streambuf>
+template <typename T>
+typename std::enable_if<_Formatter::is_iterable<T>::value>::type
+  Formatter<Streambuf>::printContainer(
+      const char_type* begin, const char_type* end, T arg)
+{
+  begin += 2;
+  end -= 2;
+
+  auto iter = begin;
+  auto formatterPos = end;
+  while (iter < end)
+  {
+    switch (*iter)
+    {
+      case '\0':
+        // should not be here
+        assert(false);
+        return;
+      case '%':
+        ++iter;
+        switch (*iter)
+        {
+          case '%':
+            ++iter;
+            FORMAT_ERROR(FormatError::NotImplemented);
+            break;
+          case '(':
+            FORMAT_ERROR(FormatError::NotImplemented);
+            break;
+          default:
+            if (formatterPos == end)
+            {
+              formatterPos = iter-1;
+
+              _Formatter::StringFormatterItem<decltype(iter)> fmt;
+              fmt.handleFormatter(iter);
+
+              bool first = true;
+              for (const auto& item : arg)
+              {
+                if (!first)
+                  m_streambuf.sputn(iter, end-iter);
+                else
+                  first = false;
+
+                m_streambuf.sputn(begin, formatterPos-begin);
+                printArg(fmt, item);
+              }
+            }
+            break;
+        }
+        break;
+      default:
+        ++iter;
+    }
+  }
+}
+
+template <typename Streambuf>
+template <typename T>
+typename std::enable_if<!_Formatter::is_iterable<T>::value>::type
+  Formatter<Streambuf>::printContainer(
+      const char_type*, const char_type*, T)
+{
+  FORMAT_ERROR(FormatError::IncompatibleType);
 }
 
 template <typename Streambuf>

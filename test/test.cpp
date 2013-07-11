@@ -359,6 +359,24 @@ TEST_CASE("s/multiarg/positional/mixed",
   testCase("-10 -10 0 0", "%1$s %s %0$s %s", 0, -10);
 }
 
+TEST_CASE("container")
+{
+  std::vector<int> v = {1, 2, 3};
+  testCase("123", "%(%d%)", v);
+}
+
+TEST_CASE("container/separator")
+{
+  std::vector<int> v = {1, 2, 3};
+  testCase("1, 2, 3", "%(%d, %)", v);
+}
+
+TEST_CASE("container/separator and prefix")
+{
+  std::vector<int> v = {1, 2, 3};
+  testCase("=1, =2, =3", "%(=%d, %)", v);
+}
+
 TEST_CASE("complex", "complex formatting")
 {
   testCase("aa 10 0x14  30 0x28 +40 00040 bb", "aa %d %#x %3d %#x %3$+d %05s bb", 10, 20, 30, 40);
