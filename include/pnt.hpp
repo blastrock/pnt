@@ -88,13 +88,31 @@ inline const char* FormatError::what() const noexcept
 namespace _Formatter
 {
   template <typename T>
-  struct isIntegral
+  struct is_integral
   {
     static constexpr bool value =
       std::is_integral<T>::value &&
       !std::is_same<T, bool>::value;
   };
 
+  template <typename...>
+  struct sfinae_true : std::true_type {};
+
+  namespace detail
+  {
+    template<typename T>
+    static sfinae_true<decltype(std::declval<T>().begin()),
+        decltype(std::declval<T>().end())> test_iterable(int);
+    template<typename>
+    static std::false_type test_iterable(long);
+  }
+
+  template<class T>
+  struct is_iterable : decltype(detail::test_iterable<T>(0)){};
+}
+
+namespace _Formatter
+{
   class FormatterItem
   {
     public:
@@ -396,23 +414,23 @@ class Formatter
 
     template <unsigned int base, typename T>
     typename std::enable_if<
-        _Formatter::isIntegral<T>::value
+        _Formatter::is_integral<T>::value
       >::type printIntegral(const _Formatter::FormatterItem& fmt, T value);
     template <unsigned int Tbase, typename T>
     std::size_t printIntegral(char_type* str,
         const _Formatter::FormatterItem& fmt, T value);
     template <unsigned int base, typename T>
     typename std::enable_if<
-        !_Formatter::isIntegral<T>::value
+        !_Formatter::is_integral<T>::value
       >::type printIntegral(const _Formatter::FormatterItem& fmt, T value);
 
     template <unsigned int base, typename T>
     typename std::enable_if<
-        _Formatter::isIntegral<T>::value
+        _Formatter::is_integral<T>::value
       >::type printUnsigned(const _Formatter::FormatterItem& fmt, T value);
     template <unsigned int base, typename T>
     typename std::enable_if<
-        !_Formatter::isIntegral<T>::value
+        !_Formatter::is_integral<T>::value
       >::type printUnsigned(const _Formatter::FormatterItem& fmt, T value);
 
     template <typename T>
@@ -777,7 +795,7 @@ namespace _Formatter
 template <typename Streambuf>
 template <unsigned int Tbase, typename T>
 typename std::enable_if<
-    _Formatter::isIntegral<T>::value
+    _Formatter::is_integral<T>::value
   >::type Formatter<Streambuf>::printIntegral(
       const _Formatter::FormatterItem& fmt, T value)
 {
@@ -949,7 +967,7 @@ template <typename Streambuf>
 template <unsigned int base, typename T>
 inline
 typename std::enable_if<
-    !_Formatter::isIntegral<T>::value
+    !_Formatter::is_integral<T>::value
   >::type Formatter<Streambuf>::printIntegral(
       const _Formatter::FormatterItem&, T)
 {
@@ -960,7 +978,7 @@ template <typename Streambuf>
 template <unsigned int base, typename T>
 inline
 typename std::enable_if<
-    _Formatter::isIntegral<T>::value
+    _Formatter::is_integral<T>::value
   >::type Formatter<Streambuf>::printUnsigned(
       const _Formatter::FormatterItem& fmt, T value)
 {
@@ -971,7 +989,7 @@ template <typename Streambuf>
 template <unsigned int base, typename T>
 inline
 typename std::enable_if<
-    !_Formatter::isIntegral<T>::value
+    !_Formatter::is_integral<T>::value
   >::type Formatter<Streambuf>::printUnsigned(
       const _Formatter::FormatterItem&, T)
 {
