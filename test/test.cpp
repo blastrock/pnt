@@ -390,6 +390,12 @@ TEST_CASE("container/escaping")
   testCase("%1%% %2%% %3%", "%(%%%d%%%|% %)", v);
 }
 
+TEST_CASE("container/positionnal")
+{
+  std::vector<int> v = {1, 2, 3};
+  testCase("0 123", "%1$d %0$(%d%)", v, 0);
+}
+
 TEST_CASE("complex", "complex formatting")
 {
   testCase("aa 10 0x14  30 0x28 +40 00040 bb", "aa %d %#x %3d %#x %3$+d %05s bb", 10, 20, 30, 40);

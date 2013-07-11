@@ -128,6 +128,9 @@ namespace _Formatter
       static constexpr unsigned int WIDTH_EMPTY = -1;
       static constexpr unsigned int WIDTH_ARG = -2;
 
+      Iterator ctnBegin;
+      Iterator ctnEnd;
+
       unsigned int position;
       unsigned char flags;
       unsigned int width;
@@ -317,6 +320,7 @@ namespace _Formatter
       case 'G':
       case 'a':
       case 'A':
+      case '(':
         formatChar = *iter;
         break;
       default:
@@ -401,18 +405,12 @@ class Formatter
       typename Formatter::traits_type>>::value
       >::type printByType(const FormatterItem& fmt, T arg);
 
-    template <typename Arg1, typename... Args>
-    void printContainerN(unsigned int item,
-        const char_type* begin, const char_type* end, Arg1 arg1, Args... args);
-    void printContainerN(unsigned int item,
-        const char_type* begin, const char_type* end);
-
     template <typename T>
     typename std::enable_if<_Formatter::is_iterable<T>::value>::type
-      printContainer(const char_type* begin, const char_type* end, T arg);
+      printContainer(const FormatterItem& fmt, T arg);
     template <typename T>
     typename std::enable_if<!_Formatter::is_iterable<T>::value>::type
-      printContainer(const char_type* begin, const char_type* end, T arg);
+      printContainer(const FormatterItem& fmt, T arg);
 
     template <typename T>
     typename std::enable_if<std::is_convertible<T, char_type>::value>::type
@@ -490,45 +488,15 @@ void Formatter<Streambuf>::print(const char_type* format, Args... args)
             ++iter;
             m_streambuf.sputc('%');
             break;
-          case '(':
-            {
-              unsigned int level = 1;
-              auto endblock = iter+1;
-              while (level)
-              {
-                switch (*endblock)
-                {
-                  case '\0':
-                    FORMAT_ERROR(FormatError::InvalidFormatter);
-                    break;
-                  case '%':
-                    ++endblock;
-                    switch (*endblock)
-                    {
-                      case '(':
-                        ++level;
-                        break;
-                      case ')':
-                        --level;
-                        if (level == 0)
-                          printContainerN(position, iter-1, endblock+1, args...);
-                        break;
-                    }
-                    ++endblock;
-                    break;
-                  default:
-                    ++endblock;
-                }
-              }
-              iter = endblock;
-            }
-            break;
           default:
             {
               FormatterItem fmt;
               fmt.handleFormatter(iter);
+
+              // if no position is provided, set it ourselves
               if (fmt.position == FormatterItem::POSITION_NONE)
                 fmt.position = position;
+              // else, switch to positionnal mode
               else
               {
                 positional = true;
@@ -537,6 +505,42 @@ void Formatter<Streambuf>::print(const char_type* format, Args... args)
 
               if (!positional)
                 ++position;
+
+              if (fmt.formatChar == '(')
+              {
+                // find the end
+                unsigned int level = 1;
+                auto endblock = iter;
+                while (level)
+                {
+                  switch (*endblock)
+                  {
+                    case '\0':
+                      FORMAT_ERROR(FormatError::InvalidFormatter);
+                      break;
+                    case '%':
+                      ++endblock;
+                      switch (*endblock)
+                      {
+                        case '(':
+                          ++level;
+                          break;
+                        case ')':
+                          --level;
+                          break;
+                      }
+                      ++endblock;
+                      break;
+                    default:
+                      ++endblock;
+                  }
+                }
+
+                fmt.ctnBegin = iter;
+                fmt.ctnEnd = endblock-2;
+
+                iter = endblock;
+              }
 
               printArgN(fmt, args...);
             }
@@ -612,6 +616,9 @@ void Formatter<Streambuf>::printArg(
     case 'a':
     case 'A':
       FORMAT_ERROR(FormatError::NotImplemented);
+      break;
+    case '(':
+      printContainer(fmt, arg);
       break;
     default:
       // should not be here
@@ -798,33 +805,13 @@ typename std::enable_if<
 }
 
 template <typename Streambuf>
-template <typename Arg1, typename... Args>
-inline
-void Formatter<Streambuf>::printContainerN(unsigned int item,
-    const char_type* begin, const char_type* end, Arg1 arg1, Args... args)
-{
-  if (item)
-    return printContainerN(item-1, begin, end, args...);
-
-  printContainer(begin, end, arg1);
-}
-
-template <typename Streambuf>
-inline
-void Formatter<Streambuf>::printContainerN(unsigned int item,
-    const char_type* begin, const char_type* end)
-{
-  FORMAT_ERROR(FormatError::TooFewArguments);
-}
-
-template <typename Streambuf>
 template <typename T>
 typename std::enable_if<_Formatter::is_iterable<T>::value>::type
   Formatter<Streambuf>::printContainer(
-      const char_type* begin, const char_type* end, T arg)
+      const FormatterItem& fmt, T arg)
 {
-  begin += 2;
-  end -= 2;
+  auto begin = fmt.ctnBegin;
+  auto end = fmt.ctnEnd;
 
   bool percent = false;
   auto iter = begin;
@@ -870,9 +857,9 @@ typename std::enable_if<_Formatter::is_iterable<T>::value>::type
   if (formatterPos == end)
     FORMAT_ERROR(FormatError::InvalidFormatter);
 
-  FormatterItem fmt;
+  FormatterItem subfmt;
   iter = formatterPos + 1;
-  fmt.handleFormatter(iter);
+  subfmt.handleFormatter(iter);
 
   if (separatorPos == end)
     separatorEnd = separatorPos = iter;
@@ -890,7 +877,7 @@ typename std::enable_if<_Formatter::is_iterable<T>::value>::type
     else
       m_streambuf.sputn(begin, formatterPos-begin);
 
-    printArg(fmt, item);
+    printArg(subfmt, item);
 
     if (percent)
       printWithEscape(iter, separatorPos);
@@ -903,7 +890,7 @@ template <typename Streambuf>
 template <typename T>
 typename std::enable_if<!_Formatter::is_iterable<T>::value>::type
   Formatter<Streambuf>::printContainer(
-      const char_type*, const char_type*, T)
+      const FormatterItem&, T)
 {
   FORMAT_ERROR(FormatError::IncompatibleType);
 }
