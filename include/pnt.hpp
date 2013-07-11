@@ -810,8 +810,8 @@ typename std::enable_if<_Formatter::is_iterable<T>::value>::type
   Formatter<Streambuf>::printContainer(
       const FormatterItem& fmt, T arg)
 {
-  auto begin = fmt.ctnBegin;
-  auto end = fmt.ctnEnd;
+  const auto begin = fmt.ctnBegin;
+  const auto end = fmt.ctnEnd;
 
   bool percent = false;
   auto iter = begin;

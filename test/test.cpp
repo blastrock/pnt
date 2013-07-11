@@ -396,6 +396,12 @@ TEST_CASE("container/positionnal")
   testCase("0 123", "%1$d %0$(%d%)", v, 0);
 }
 
+TEST_CASE("container/empty")
+{
+  std::vector<int> v;
+  testCase("", "%(%d%)", v);
+}
+
 TEST_CASE("complex", "complex formatting")
 {
   testCase("aa 10 0x14  30 0x28 +40 00040 bb", "aa %d %#x %3d %#x %3$+d %05s bb", 10, 20, 30, 40);
@@ -425,6 +431,16 @@ TEST_CASE("error/invalid format string", "invalid format string")
   CHECK_THROWS(testCase("", "%y", "test"));
   CHECK_THROWS(testCase("", "%..s", "test"));
   CHECK_THROWS(testCase("", "%$s", "test"));
+}
+
+TEST_CASE("error/invalid format string/containers")
+{
+  std::vector<int> v;
+  CHECK_THROWS(testCase("", "%(", v));
+  CHECK_THROWS(testCase("", "%)", v));
+  CHECK_THROWS(testCase("", "%(%)", v));
+  CHECK_THROWS(testCase("", "%(%|%)", v));
+  CHECK_THROWS(testCase("", "%(%|%d%)", v));
 }
 
 // vim: ts=2:sw=2:sts=2:expandtab
