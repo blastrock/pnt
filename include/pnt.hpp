@@ -811,6 +811,8 @@ typename std::enable_if<_Formatter::is_iterable<T>::value>::type
 
   auto iter = begin;
   auto formatterPos = end;
+  auto separatorPos = end;
+  auto separatorEnd = end;
   while (iter < end)
   {
     switch (*iter)
@@ -830,32 +832,45 @@ typename std::enable_if<_Formatter::is_iterable<T>::value>::type
           case '(':
             FORMAT_ERROR(FormatError::NotImplemented);
             break;
+          case '|':
+            separatorPos = iter-1;
+            separatorEnd = iter+1;
+            // nothing more to do, exit the loop
+            iter = end;
+            break;
           default:
             if (formatterPos == end)
-            {
               formatterPos = iter-1;
-
-              _Formatter::StringFormatterItem<decltype(iter)> fmt;
-              fmt.handleFormatter(iter);
-
-              bool first = true;
-              for (const auto& item : arg)
-              {
-                if (!first)
-                  m_streambuf.sputn(iter, end-iter);
-                else
-                  first = false;
-
-                m_streambuf.sputn(begin, formatterPos-begin);
-                printArg(fmt, item);
-              }
-            }
             break;
         }
         break;
       default:
         ++iter;
     }
+  }
+
+  // if no formatter is found, use %s
+  if (formatterPos == end)
+    FORMAT_ERROR(FormatError::NotImplemented);
+
+  _Formatter::StringFormatterItem<decltype(iter)> fmt;
+  iter = formatterPos + 1;
+  fmt.handleFormatter(iter);
+
+  if (separatorPos == end)
+    separatorEnd = separatorPos = iter;
+
+  bool first = true;
+  for (const auto& item : arg)
+  {
+    if (!first)
+      m_streambuf.sputn(separatorEnd, end-separatorEnd);
+    else
+      first = false;
+
+    m_streambuf.sputn(begin, formatterPos-begin);
+    printArg(fmt, item);
+    m_streambuf.sputn(iter, separatorPos-iter);
   }
 }
 
