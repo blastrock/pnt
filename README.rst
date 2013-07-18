@@ -45,6 +45,7 @@ Features
 
 - Single header-only library
 - Type safe
+- Container formatting
 - No heap allocation (except for floats and unless a cast to std::string is needed)
 - Fast (except for floats)
 - No dependencies apart from std headers
@@ -54,7 +55,6 @@ Features
 TODO:
 
 - %a and %A
-- List formatting (with %s)
 - Width and precision given as arguments
 
 Benchmarks

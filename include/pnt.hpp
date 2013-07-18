@@ -388,7 +388,8 @@ class Formatter
         !std::is_floating_point<T>::value &&
         !std::is_convertible<T,
           std::basic_string<char_type, traits_type>>::value &&
-        !std::is_pointer<T>::value
+        !std::is_pointer<T>::value &&
+        !_Formatter::is_iterable<T>::value
       >::type printGeneric(const FormatterItem& fmt, T arg);
     template <typename T>
     typename std::enable_if<std::is_integral<T>::value>::type
@@ -401,10 +402,17 @@ class Formatter
       printGeneric(const FormatterItem& fmt, T arg);
     template <typename T>
     typename std::enable_if<
+        _Formatter::is_iterable<T>::value &&
+        !std::is_convertible<T,
+          std::basic_string<typename Formatter::char_type,
+            typename Formatter::traits_type>>::value
+      >::type printGeneric(const FormatterItem& fmt, T arg);
+    template <typename T>
+    typename std::enable_if<
         !std::is_floating_point<T>::value &&
         !std::is_integral<T>::value &&
         std::is_convertible<T, std::basic_string<typename Formatter::char_type,
-      typename Formatter::traits_type>>::value
+          typename Formatter::traits_type>>::value
       >::type printGeneric(const FormatterItem& fmt, T arg);
 
     template <typename T>
@@ -692,22 +700,6 @@ void Formatter<Streambuf>::printWithEscape(
 }
 
 template <typename Streambuf>
-template <typename T>
-inline
-typename std::enable_if<
-    !std::is_integral<T>::value &&
-    !std::is_floating_point<T>::value &&
-    !std::is_convertible<T,
-      std::basic_string<typename Formatter<Streambuf>::char_type,
-        typename Formatter<Streambuf>::traits_type>>::value &&
-    !std::is_pointer<T>::value
-  >::type Formatter<Streambuf>::printGeneric(
-      const FormatterItem&, T)
-{
-  FORMAT_ERROR(FormatError::IncompatibleType);
-}
-
-template <typename Streambuf>
 inline
 void Formatter<Streambuf>::printGeneric(
     const FormatterItem& fmt, bool arg)
@@ -755,6 +747,23 @@ void Formatter<Streambuf>::printGeneric(
   m_streambuf.sputn(arg, size);
 
   printPostFill(fmt, size);
+}
+
+template <typename Streambuf>
+template <typename T>
+inline
+typename std::enable_if<
+    !std::is_integral<T>::value &&
+    !std::is_floating_point<T>::value &&
+    !std::is_convertible<T,
+      std::basic_string<typename Formatter<Streambuf>::char_type,
+        typename Formatter<Streambuf>::traits_type>>::value &&
+    !std::is_pointer<T>::value &&
+    !_Formatter::is_iterable<T>::value
+  >::type Formatter<Streambuf>::printGeneric(
+      const FormatterItem&, T)
+{
+  FORMAT_ERROR(FormatError::IncompatibleType);
 }
 
 template <typename Streambuf>
@@ -813,6 +822,30 @@ typename std::enable_if<
   m_streambuf.sputn(str.c_str(), str.length());
 
   printPostFill(fmt, str.length());
+}
+
+template <typename Streambuf>
+template <typename T>
+inline
+typename std::enable_if<
+  _Formatter::is_iterable<T>::value &&
+  !std::is_convertible<T,
+    std::basic_string<
+      typename Formatter<Streambuf>::char_type,
+      typename Formatter<Streambuf>::traits_type>>::value
+  >::type Formatter<Streambuf>::printGeneric(const FormatterItem& fmt, T arg)
+{
+  const char_type subfmt[] = "%s, ";
+
+  FormatterItem fmt2 = fmt;
+  fmt2.ctnBegin = subfmt;
+  fmt2.ctnEnd = subfmt + sizeof(subfmt)-1;
+
+  m_streambuf.sputc('{');
+
+  printContainer(fmt2, arg);
+
+  m_streambuf.sputc('}');
 }
 
 template <typename Streambuf>
