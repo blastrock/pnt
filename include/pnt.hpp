@@ -379,9 +379,9 @@ class Formatter
         const FormatterItem& fmt, unsigned int size);
     void printWithEscape(const char_type* begin, const char_type* end);
 
-    void printByType(const FormatterItem&, bool arg);
-    void printByType(const FormatterItem&, char_type arg);
-    void printByType(const FormatterItem&, const char_type* arg);
+    void printGeneric(const FormatterItem&, bool arg);
+    void printGeneric(const FormatterItem&, char_type arg);
+    void printGeneric(const FormatterItem&, const char_type* arg);
     template <typename T>
     typename std::enable_if<
         !std::is_integral<T>::value &&
@@ -389,23 +389,23 @@ class Formatter
         !std::is_convertible<T,
           std::basic_string<char_type, traits_type>>::value &&
         !std::is_pointer<T>::value
-      >::type printByType(const FormatterItem& fmt, T arg);
+      >::type printGeneric(const FormatterItem& fmt, T arg);
     template <typename T>
     typename std::enable_if<std::is_integral<T>::value>::type
-      printByType(const FormatterItem& fmt, T arg);
+      printGeneric(const FormatterItem& fmt, T arg);
     template <typename T>
     typename std::enable_if<std::is_pointer<T>::value>::type
-      printByType(const FormatterItem& fmt, T arg);
+      printGeneric(const FormatterItem& fmt, T arg);
     template <typename T>
     typename std::enable_if<std::is_floating_point<T>::value>::type
-      printByType(const FormatterItem& fmt, T arg);
+      printGeneric(const FormatterItem& fmt, T arg);
     template <typename T>
     typename std::enable_if<
         !std::is_floating_point<T>::value &&
         !std::is_integral<T>::value &&
         std::is_convertible<T, std::basic_string<typename Formatter::char_type,
       typename Formatter::traits_type>>::value
-      >::type printByType(const FormatterItem& fmt, T arg);
+      >::type printGeneric(const FormatterItem& fmt, T arg);
 
     template <typename T>
     typename std::enable_if<_Formatter::is_iterable<T>::value>::type
@@ -595,7 +595,7 @@ void Formatter<Streambuf>::printArg(
   switch (fmt.formatChar)
   {
     case 's':
-      printByType(fmt, arg);
+      printGeneric(fmt, arg);
       break;
     case 'c':
       printChar(fmt, arg);
@@ -701,7 +701,7 @@ typename std::enable_if<
       std::basic_string<typename Formatter<Streambuf>::char_type,
         typename Formatter<Streambuf>::traits_type>>::value &&
     !std::is_pointer<T>::value
-  >::type Formatter<Streambuf>::printByType(
+  >::type Formatter<Streambuf>::printGeneric(
       const FormatterItem&, T)
 {
   FORMAT_ERROR(FormatError::IncompatibleType);
@@ -709,7 +709,7 @@ typename std::enable_if<
 
 template <typename Streambuf>
 inline
-void Formatter<Streambuf>::printByType(
+void Formatter<Streambuf>::printGeneric(
     const FormatterItem& fmt, bool arg)
 {
   static const char_type t[] =
@@ -729,7 +729,7 @@ void Formatter<Streambuf>::printByType(
 
 template <typename Streambuf>
 inline
-void Formatter<Streambuf>::printByType(
+void Formatter<Streambuf>::printGeneric(
     const FormatterItem& fmt, char_type arg)
 {
   printChar(fmt, arg);
@@ -737,7 +737,7 @@ void Formatter<Streambuf>::printByType(
 
 template <typename Streambuf>
 inline
-void Formatter<Streambuf>::printByType(
+void Formatter<Streambuf>::printGeneric(
     const FormatterItem& fmt, const char_type* arg)
 {
   // calculate size
@@ -761,7 +761,7 @@ template <typename Streambuf>
 template <typename T>
 inline
 typename std::enable_if<std::is_integral<T>::value>::type
-  Formatter<Streambuf>::printByType(
+  Formatter<Streambuf>::printGeneric(
       const FormatterItem& fmt, T arg)
 {
   printIntegral<10>(fmt, arg);
@@ -771,7 +771,7 @@ template <typename Streambuf>
 template <typename T>
 inline
 typename std::enable_if<std::is_pointer<T>::value>::type
-  Formatter<Streambuf>::printByType(
+  Formatter<Streambuf>::printGeneric(
       const FormatterItem& fmt, T arg)
 {
   printPointer(fmt, arg);
@@ -781,7 +781,7 @@ template <typename Streambuf>
 template <typename T>
 inline
 typename std::enable_if<std::is_floating_point<T>::value>::type
-  Formatter<Streambuf>::printByType(
+  Formatter<Streambuf>::printGeneric(
       const FormatterItem& fmt, T arg)
 {
   FormatterItem fmt2 = fmt;
@@ -801,7 +801,7 @@ typename std::enable_if<
     std::basic_string<
       typename Formatter<Streambuf>::char_type,
       typename Formatter<Streambuf>::traits_type>>::value
-  >::type Formatter<Streambuf>::printByType(
+  >::type Formatter<Streambuf>::printGeneric(
       const FormatterItem& fmt, T arg)
 {
   std::basic_string<
