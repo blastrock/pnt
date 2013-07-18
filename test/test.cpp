@@ -402,6 +402,12 @@ TEST_CASE("container/empty")
   testCase("", "%(%d%)", v);
 }
 
+TEST_CASE("container/nested")
+{
+  std::vector<std::vector<int>> v = {{1, 2}, {3, 4}, {5, 6}};
+  testCase("{[=1=-=2=], [=3=-=4=], [=5=-=6=]}", "{%([%(=%d=%|-%)]%|, %)}", v);
+}
+
 TEST_CASE("complex", "complex formatting")
 {
   testCase("aa 10 0x14  30 0x28 +40 00040 bb", "aa %d %#x %3d %#x %3$+d %05s bb", 10, 20, 30, 40);

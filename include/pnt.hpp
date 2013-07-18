@@ -361,6 +361,8 @@ class Formatter
 
     Streambuf& m_streambuf;
 
+    const char_type* findEndParen(const char_type* begin);
+
     template <typename... Args>
     void printArgN(const FormatterItem& fmt, Args... args);
     template <typename Arg1, typename... Args>
@@ -508,33 +510,7 @@ void Formatter<Streambuf>::print(const char_type* format, Args... args)
 
               if (fmt.formatChar == '(')
               {
-                // find the end
-                unsigned int level = 1;
-                auto endblock = iter;
-                while (level)
-                {
-                  switch (*endblock)
-                  {
-                    case '\0':
-                      FORMAT_ERROR(FormatError::InvalidFormatter);
-                      break;
-                    case '%':
-                      ++endblock;
-                      switch (*endblock)
-                      {
-                        case '(':
-                          ++level;
-                          break;
-                        case ')':
-                          --level;
-                          break;
-                      }
-                      ++endblock;
-                      break;
-                    default:
-                      ++endblock;
-                  }
-                }
+                auto endblock = findEndParen(iter);
 
                 fmt.ctnBegin = iter;
                 fmt.ctnEnd = endblock-2;
@@ -552,6 +528,41 @@ void Formatter<Streambuf>::print(const char_type* format, Args... args)
         ++iter;
     }
   }
+}
+
+template <typename Streambuf>
+const typename Formatter<Streambuf>::char_type*
+  Formatter<Streambuf>::findEndParen(const char_type* begin)
+{
+  // find the end
+  unsigned int level = 1;
+  auto endblock = begin;
+  while (level)
+  {
+    switch (*endblock)
+    {
+      case '\0':
+        FORMAT_ERROR(FormatError::InvalidFormatter);
+        break;
+      case '%':
+        ++endblock;
+        switch (*endblock)
+        {
+          case '(':
+            ++level;
+            break;
+          case ')':
+            --level;
+            break;
+        }
+        ++endblock;
+        break;
+      default:
+        ++endblock;
+    }
+  }
+
+  return endblock;
 }
 
 template <typename Streambuf>
@@ -813,9 +824,12 @@ typename std::enable_if<_Formatter::is_iterable<T>::value>::type
   const auto begin = fmt.ctnBegin;
   const auto end = fmt.ctnEnd;
 
+  FormatterItem subfmt;
+  // if we have an escaped percent before the separator, put this to true
   bool percent = false;
   auto iter = begin;
   auto formatterPos = end;
+  auto formatterEnd = end;
   auto separatorPos = end;
   auto separatorEnd = end;
   while (iter < end)
@@ -831,11 +845,9 @@ typename std::enable_if<_Formatter::is_iterable<T>::value>::type
         switch (*iter)
         {
           case '%':
-            percent = true;
+            if (separatorPos == end)
+              percent = true;
             ++iter;
-            break;
-          case '(':
-            FORMAT_ERROR(FormatError::NotImplemented);
             break;
           case '|':
             separatorPos = iter-1;
@@ -845,7 +857,23 @@ typename std::enable_if<_Formatter::is_iterable<T>::value>::type
             break;
           default:
             if (formatterPos == end)
+            {
               formatterPos = iter-1;
+
+              subfmt.handleFormatter(iter);
+
+              if (subfmt.formatChar == '(')
+              {
+                auto endblock = findEndParen(iter);
+
+                subfmt.ctnBegin = iter;
+                subfmt.ctnEnd = endblock-2;
+
+                iter = endblock;
+              }
+
+              formatterEnd = iter;
+            }
             break;
         }
         break;
@@ -857,12 +885,8 @@ typename std::enable_if<_Formatter::is_iterable<T>::value>::type
   if (formatterPos == end)
     FORMAT_ERROR(FormatError::InvalidFormatter);
 
-  FormatterItem subfmt;
-  iter = formatterPos + 1;
-  subfmt.handleFormatter(iter);
-
   if (separatorPos == end)
-    separatorEnd = separatorPos = iter;
+    separatorEnd = separatorPos = formatterEnd;
 
   bool first = true;
   for (const auto& item : arg)
@@ -880,9 +904,9 @@ typename std::enable_if<_Formatter::is_iterable<T>::value>::type
     printArg(subfmt, item);
 
     if (percent)
-      printWithEscape(iter, separatorPos);
+      printWithEscape(formatterEnd, separatorPos);
     else
-      m_streambuf.sputn(iter, separatorPos-iter);
+      m_streambuf.sputn(formatterEnd, separatorPos-formatterEnd);
   }
 }
 

@@ -54,7 +54,7 @@ Features
 TODO:
 
 - %a and %A
-- List formatting (nested lists and %s)
+- List formatting (with %s)
 - Width and precision given as arguments
 
 Benchmarks
