@@ -33,7 +33,7 @@
 #include <limits>
 #include <stdexcept>
 #include <iostream>
-#include <sstream>
+#include <ostream>
 #include <iomanip>
 
 #ifdef FORMATTER_THROW_ON_ERROR
@@ -1224,13 +1224,45 @@ typename std::enable_if<
 }
 
 template <typename Streambuf>
+class StdStreambuf : public std::streambuf
+{
+  public:
+    StdStreambuf(Streambuf& sb) :
+      m_streambuf(sb)
+    {}
+    int_type overflow(int_type ch)
+    {
+      if (!traits_type::eq_int_type(ch, traits_type::eof()))
+      {
+        sync();
+        m_streambuf.sputc(ch);
+        return ch;
+      }
+      return traits_type::eof();
+    }
+
+    int sync()
+    {
+      m_streambuf.sputn(pbase(), pptr()-pbase());
+      pbump(pptr() - pbase());
+
+      return 0;
+    }
+
+  private:
+    Streambuf& m_streambuf;
+};
+
+template <typename Streambuf>
 template <typename T>
 typename std::enable_if<
     std::is_floating_point<T>::value
   >::type Formatter<Streambuf>::printFloat(
       const FormatterItem& fmt, T value)
 {
-  std::ostringstream ss;
+  StdStreambuf<Streambuf> sb(m_streambuf);
+  std::basic_ostream<char_type> ss(&sb);
+
   ss << std::setprecision(fmt.precision);
   if (fmt.width != FormatterItem::WIDTH_EMPTY)
     ss << std::setw(fmt.width);
@@ -1258,8 +1290,6 @@ typename std::enable_if<
       assert(false);
   }
   ss << value;
-  std::string s = ss.str();
-  m_streambuf.sputn(s.c_str(), s.length());
 }
 
 template <typename Streambuf>
