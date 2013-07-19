@@ -36,6 +36,11 @@
 #include <sstream>
 #include <iomanip>
 
+namespace pnt
+{
+
+// Error handling {{{
+
 #ifdef FORMATTER_THROW_ON_ERROR
 #define FORMAT_ERROR(type) \
   throw FormatError(type)
@@ -46,9 +51,6 @@
     std::terminate(); /* silence warning */ \
   } while (0)
 #endif
-
-namespace pnt
-{
 
 class FormatError : public std::exception
 {
@@ -88,6 +90,10 @@ inline const char* FormatError::what() const noexcept
   }
 }
 
+// }}}
+
+// Traits {{{
+
 namespace _Formatter
 {
   template <typename T>
@@ -113,6 +119,10 @@ namespace _Formatter
   template<class T>
   struct is_iterable : decltype(detail::test_iterable<T>(0)){};
 }
+
+// }}}
+
+// Formatter parsing {{{
 
 namespace _Formatter
 {
@@ -346,6 +356,10 @@ namespace _Formatter
   }
 }
 
+// }}}
+
+// Main class {{{
+
 template <typename Streambuf>
 class Formatter
 {
@@ -386,15 +400,6 @@ class Formatter
     void printGeneric(const FormatterItem&, char_type arg);
     void printGeneric(const FormatterItem&, const char_type* arg);
     template <typename T>
-    typename std::enable_if<
-        !std::is_integral<T>::value &&
-        !std::is_floating_point<T>::value &&
-        !std::is_convertible<T,
-          std::basic_string<char_type, traits_type>>::value &&
-        !std::is_pointer<T>::value &&
-        !_Formatter::is_iterable<T>::value
-      >::type printGeneric(const FormatterItem& fmt, T arg);
-    template <typename T>
     typename std::enable_if<std::is_integral<T>::value>::type
       printGeneric(const FormatterItem& fmt, T arg);
     template <typename T>
@@ -416,6 +421,15 @@ class Formatter
         !std::is_integral<T>::value &&
         std::is_convertible<T, std::basic_string<typename Formatter::char_type,
           typename Formatter::traits_type>>::value
+      >::type printGeneric(const FormatterItem& fmt, T arg);
+    template <typename T>
+    typename std::enable_if<
+        !std::is_integral<T>::value &&
+        !std::is_floating_point<T>::value &&
+        !std::is_convertible<T,
+          std::basic_string<char_type, traits_type>>::value &&
+        !std::is_pointer<T>::value &&
+        !_Formatter::is_iterable<T>::value
       >::type printGeneric(const FormatterItem& fmt, T arg);
 
     template <typename T>
@@ -475,6 +489,10 @@ inline Formatter<Streambuf>::Formatter(Streambuf& stream) :
   m_streambuf(stream)
 {
 }
+
+// }}}
+
+// Format string parsing {{{
 
 template <typename Streambuf>
 template <typename... Args>
@@ -576,6 +594,10 @@ const typename Formatter<Streambuf>::char_type*
   return endblock;
 }
 
+// }}}
+
+// Argument extraction {{{
+
 template <typename Streambuf>
 template <typename... Args>
 inline
@@ -596,6 +618,18 @@ void Formatter<Streambuf>::printArgN(unsigned int item,
 
   printArg(fmt, arg1);
 }
+
+template <typename Streambuf>
+inline
+void Formatter<Streambuf>::printArgN(unsigned int,
+    const FormatterItem&)
+{
+  FORMAT_ERROR(FormatError::TooFewArguments);
+}
+
+// }}}
+
+// Argument handling {{{
 
 template <typename Streambuf>
 template <typename T>
@@ -649,13 +683,9 @@ void Formatter<Streambuf>::printArg(
   }
 }
 
-template <typename Streambuf>
-inline
-void Formatter<Streambuf>::printArgN(unsigned int,
-    const FormatterItem&)
-{
-  FORMAT_ERROR(FormatError::TooFewArguments);
-}
+// }}}
+
+// Internal helpers {{{
 
 template <typename Streambuf>
 inline
@@ -701,6 +731,10 @@ void Formatter<Streambuf>::printWithEscape(
     else
       m_streambuf.sputc(*iter);
 }
+
+// }}}
+
+// Generic printers {{{
 
 template <typename Streambuf>
 inline
@@ -750,23 +784,6 @@ void Formatter<Streambuf>::printGeneric(
   m_streambuf.sputn(arg, size);
 
   printPostFill(fmt, size);
-}
-
-template <typename Streambuf>
-template <typename T>
-inline
-typename std::enable_if<
-    !std::is_integral<T>::value &&
-    !std::is_floating_point<T>::value &&
-    !std::is_convertible<T,
-      std::basic_string<typename Formatter<Streambuf>::char_type,
-        typename Formatter<Streambuf>::traits_type>>::value &&
-    !std::is_pointer<T>::value &&
-    !_Formatter::is_iterable<T>::value
-  >::type Formatter<Streambuf>::printGeneric(
-      const FormatterItem&, T)
-{
-  FORMAT_ERROR(FormatError::IncompatibleType);
 }
 
 template <typename Streambuf>
@@ -850,6 +867,27 @@ typename std::enable_if<
 
   m_streambuf.sputc('}');
 }
+
+template <typename Streambuf>
+template <typename T>
+inline
+typename std::enable_if<
+    !std::is_integral<T>::value &&
+    !std::is_floating_point<T>::value &&
+    !std::is_convertible<T,
+      std::basic_string<typename Formatter<Streambuf>::char_type,
+        typename Formatter<Streambuf>::traits_type>>::value &&
+    !std::is_pointer<T>::value &&
+    !_Formatter::is_iterable<T>::value
+  >::type Formatter<Streambuf>::printGeneric(
+      const FormatterItem&, T)
+{
+  FORMAT_ERROR(FormatError::IncompatibleType);
+}
+
+// }}}
+
+// Container printer {{{
 
 template <typename Streambuf>
 template <typename T>
@@ -955,6 +993,10 @@ typename std::enable_if<!_Formatter::is_iterable<T>::value>::type
   FORMAT_ERROR(FormatError::IncompatibleType);
 }
 
+// }}}
+
+// Char printer {{{
+
 template <typename Streambuf>
 template <typename T>
 inline
@@ -979,6 +1021,10 @@ typename std::enable_if<!std::is_convertible<T,
   FORMAT_ERROR(FormatError::IncompatibleType);
 }
 
+// }}}
+
+// Pointer printer {{{
+
 template <typename Streambuf>
 template <typename T>
 inline
@@ -1002,6 +1048,10 @@ typename std::enable_if<!std::is_pointer<T>::value>::type
 {
   FORMAT_ERROR(FormatError::IncompatibleType);
 }
+
+// }}}
+
+// Integral printers {{{
 
 namespace _Formatter
 {
@@ -1226,6 +1276,10 @@ typename std::enable_if<
   FORMAT_ERROR(FormatError::IncompatibleType);
 }
 
+// }}}
+
+// Float printer {{{
+
 template <typename Streambuf>
 template <typename T>
 typename std::enable_if<
@@ -1275,6 +1329,10 @@ typename std::enable_if<
   FORMAT_ERROR(FormatError::IncompatibleType);
 }
 
+// }}}
+
+// User helpers {{{
+
 template <typename Streambuf, typename... Args>
 inline void writef(Streambuf& streambuf,
     const typename Streambuf::char_type* format, Args... args)
@@ -1294,7 +1352,9 @@ inline void writef(const wchar_t* format, Args... args)
   Formatter<std::wstreambuf>(*std::wcout.rdbuf()).print(format, args...);
 }
 
+// }}}
+
 }
 
 #endif
-// vim: ts=2:sw=2:sts=2:expandtab
+// vim: ts=2:sw=2:sts=2:expandtab:foldmethod=marker
