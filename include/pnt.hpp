@@ -995,7 +995,7 @@ template <typename Streambuf>
 template <typename T>
 inline
 typename std::enable_if<!std::is_pointer<T>::value>::type
-  Formatter<Streambuf>::printPointer(const FormatterItem& fmt, T arg)
+  Formatter<Streambuf>::printPointer(const FormatterItem&, T)
 {
   FORMAT_ERROR(FormatError::IncompatibleType);
 }
