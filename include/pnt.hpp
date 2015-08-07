@@ -41,7 +41,10 @@
   throw FormatError(type)
 #else
 #define FORMAT_ERROR(type) \
-  assert(!#type)
+  do { \
+    assert(!#type); \
+    std::terminate(); /* silence warning */ \
+  } while (0)
 #endif
 
 namespace pnt
