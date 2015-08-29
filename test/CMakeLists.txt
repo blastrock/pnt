@@ -14,6 +14,6 @@ include_directories(
   ${CATCH_INCLUDE_DIR}
 )
 
-add_executable(test
+add_executable(pnttest
   test.cpp
 )
