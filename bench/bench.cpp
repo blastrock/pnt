@@ -47,11 +47,13 @@ class FileStreambuf2 : public std::streambuf
     int_type sputc(char_type ch)
     {
       fputc(ch, m_file);
+      return traits_type::to_int_type(ch);
     }
 
     std::streamsize sputn(const char_type* s, std::streamsize count)
     {
       fwrite(s, count, 1, m_file);
+      return count;
     }
 
   private:
