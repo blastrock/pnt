@@ -10,11 +10,15 @@ pnt is a library to format text the printf way.
 Example 1 - integer formatting
 ------------------------------
 
-If you are tired of lines like::
+If you are tired of lines like:
+
+.. code-block:: cpp
 
     std::cout << "The value is " << std::setw(10) << std::setfill('0') << std::showpos << std::internal << value << " which is, in hexa, " << std::setw(8) << std::setfill('0') << std::showbase << std::hex << value << '.' << std::endl;
 
-Maybe you would prefer writing it as::
+Maybe you would prefer writing it as:
+
+.. code-block:: cpp
 
     pnt::writef("The value is %0$+010d which is, in hexa, %0$#08x.\n", value);
 
@@ -25,7 +29,9 @@ As a note, here is the output for 12345::
 Example 2 - container formatting
 --------------------------------
 
-Now, let's do something more sexy::
+Now, let's do something more sexy:
+
+.. code-block:: cpp
 
     pnt::writef("Here is the list: %([%#x]%|, %).\n", std::vector<int>{1, 2, 3, 4});
 
@@ -103,16 +109,23 @@ Just copy pnt.hpp in your include path and you are ready to go!
 Documentation
 =============
 
-All methods are in the pnt namespace.
+All methods are in the xll::pnt namespace.
 
-::
+.. code-block:: cpp
 
     template <typename Streambuf, typename... Args>
     void writef(Streambuf& sb, const Streambuf::char_type* fmt, Args... args);
 
 Note: This documentation is copied and adapted from the std.format.formattedWriter documentation of the D language. This documentation is licensed under the Boost Version 1.0 license. See license section.
 
-Interprets variadic argument list args, formats them according to fmt, and sends the resulting characters to sb.
+Interprets variadic argument list ``args``, formats them according to ``fmt``, and sends the resulting characters to ``sb``.
+
+``Streambuf`` does not need to be a real ``std::streambuf``, it only needs to define the following things:
+
+- char_type
+- traits_type
+- void sputc(char_type ch)
+- void sputn(const char_type* s, std::streamsize count)
 
 The variadic arguments are normally consumed in order. POSIX-style positional parameter syntax is also supported. Each argument is formatted into a sequence of chars according to the format specification, and the characters are passed to sb. As many arguments as specified in the format string are consumed and formatted. If there are fewer arguments than format specifiers, an error is raised. If there are more remaining arguments than needed by the format specification and there are no positionnal argument used in fmt, an error is raised, otherwise they are ignored.
 
@@ -256,7 +269,7 @@ what's after %| will be used as a separator. '%' characters must be escaped
 when used as prefix or suffix but not when used as separator. Look at the
 examples.
 
-::
+.. code-block:: cpp
 
     template <typename... Args>
     void writef(const char* fmt, Args... args);
