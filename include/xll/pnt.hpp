@@ -26,8 +26,8 @@
 // those of the authors and should not be interpreted as representing official
 // policies, either expressed or implied, of the FreeBSD Project.
 
-#ifndef PNT_HPP
-#define PNT_HPP
+#ifndef XLL_PNT_HPP
+#define XLL_PNT_HPP
 
 #include <cassert>
 #include <limits>
@@ -36,6 +36,8 @@
 #include <sstream>
 #include <iomanip>
 
+namespace xll
+{
 namespace pnt
 {
 
@@ -1355,6 +1357,7 @@ inline void writef(const wchar_t* format, Args... args)
 // }}}
 
 }
+}
 
 #endif
-// vim: ts=2:sw=2:sts=2:expandtab:foldmethod=marker
+// vim: sw=2:sts=2:expandtab:foldmethod=marker

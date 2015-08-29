@@ -1,10 +1,10 @@
 #define FORMATTER_THROW_ON_ERROR
-#include <pnt.hpp>
+#include <xll/pnt.hpp>
 #include <utility>
 #define CATCH_CONFIG_MAIN
 #include <catch.hpp>
 
-using namespace pnt;
+using namespace xll::pnt;
 
 template <typename... Args>
 void testCase(const std::string& expected, const char* format,
