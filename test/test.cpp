@@ -297,6 +297,24 @@ TEST_CASE("pointer", "pointer argument")
   }
 }
 
+TEST_CASE("pointer/null", "null pointer argument")
+{
+  if (sizeof(void*) == 4)
+  {
+    testCase("aa (nil) bb", "aa %s bb", (void*)nullptr);
+    testCase("aa                (nil) bb", "aa %20p bb", (void*)nullptr);
+  }
+  else if (sizeof(void*) == 8)
+  {
+    testCase("aa (nil) bb", "aa %s bb", (void*)nullptr);
+    testCase("aa                (nil) bb", "aa %20p bb", (void*)nullptr);
+  }
+  else
+  {
+    std::cout << "can't test pointers, unknown architecture" << std::endl;
+  }
+}
+
 TEST_CASE("float/%f", "float argument with %f")
 {
   testCase("aa 3.500000 bb", "aa %f bb", 3.5);

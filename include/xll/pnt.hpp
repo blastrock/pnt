@@ -1033,13 +1033,26 @@ inline
 typename std::enable_if<std::is_pointer<T>::value>::type
   Formatter<Streambuf>::printPointer(const FormatterItem& fmt, T arg)
 {
-  FormatterItem fmt2 = fmt;
+  if (arg)
+  {
+    FormatterItem fmt2 = fmt;
 
-  fmt2.flags = FormatterItem::FLAG_EXPLICIT_BASE;
-  fmt2.precision = sizeof(void*) * 2;
-  fmt2.formatChar = 'x';
+    fmt2.flags = FormatterItem::FLAG_EXPLICIT_BASE;
+    fmt2.precision = sizeof(void*) * 2;
+    fmt2.formatChar = 'x';
 
-  printIntegral<16>(fmt2, reinterpret_cast<uintptr_t>(arg));
+    printIntegral<16>(fmt2, reinterpret_cast<uintptr_t>(arg));
+  }
+  else
+  {
+    static const char_type nil[] =
+      {'(', 'n', 'i', 'l', ')'};
+    printPreFill(fmt, sizeof(nil));
+
+    m_streambuf.sputn(nil, sizeof(nil));
+
+    printPostFill(fmt, sizeof(nil));
+  }
 }
 
 template <typename Streambuf>
@@ -1113,12 +1126,12 @@ typename std::enable_if<
   else if (fmt.flags & FormatterItem::FLAG_EXPLICIT_BASE)
     switch (fmt.formatChar)
     {
-      case 'x': 
+      case 'x':
       case 'X':
         if (value != 0)
           size += 2;
         break;
-      case 'o': 
+      case 'o':
         ++size;
         break;
       default:
