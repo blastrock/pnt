@@ -405,7 +405,8 @@ class Formatter
     typename std::enable_if<std::is_integral<T>::value>::type
       printGeneric(const FormatterItem& fmt, T arg);
     template <typename T>
-    typename std::enable_if<std::is_pointer<T>::value>::type
+    typename std::enable_if<std::is_pointer<T>::value ||
+                            std::is_null_pointer<T>::value>::type
       printGeneric(const FormatterItem& fmt, T arg);
     template <typename T>
     typename std::enable_if<std::is_floating_point<T>::value>::type
@@ -421,6 +422,7 @@ class Formatter
     typename std::enable_if<
         !std::is_floating_point<T>::value &&
         !std::is_integral<T>::value &&
+        !std::is_null_pointer<T>::value &&
         std::is_convertible<T, std::basic_string<typename Formatter::char_type,
           typename Formatter::traits_type>>::value
       >::type printGeneric(const FormatterItem& fmt, T arg);
@@ -431,6 +433,7 @@ class Formatter
         !std::is_convertible<T,
           std::basic_string<char_type, traits_type>>::value &&
         !std::is_pointer<T>::value &&
+        !std::is_null_pointer<T>::value &&
         !_Formatter::is_iterable<T>::value
       >::type printGeneric(const FormatterItem& fmt, T arg);
 
@@ -449,10 +452,12 @@ class Formatter
       printChar(const FormatterItem& fmt, T arg);
 
     template <typename T>
-    typename std::enable_if<std::is_pointer<T>::value>::type
+    typename std::enable_if<std::is_pointer<T>::value ||
+                            std::is_null_pointer<T>::value>::type
       printPointer(const FormatterItem& fmt, T arg);
     template <typename T>
-    typename std::enable_if<!std::is_pointer<T>::value>::type
+    typename std::enable_if<!std::is_pointer<T>::value &&
+                            !std::is_null_pointer<T>::value>::type
       printPointer(const FormatterItem& fmt, T arg);
 
     template <unsigned int base, typename T>
@@ -800,10 +805,9 @@ typename std::enable_if<std::is_integral<T>::value>::type
 
 template <typename Streambuf>
 template <typename T>
-inline
-typename std::enable_if<std::is_pointer<T>::value>::type
-  Formatter<Streambuf>::printGeneric(
-      const FormatterItem& fmt, T arg)
+inline typename std::enable_if<std::is_pointer<T>::value ||
+                               std::is_null_pointer<T>::value>::type
+  Formatter<Streambuf>::printGeneric(const FormatterItem& fmt, T arg)
 {
   printPointer(fmt, arg);
 }
@@ -828,6 +832,7 @@ inline
 typename std::enable_if<
   !std::is_floating_point<T>::value &&
   !std::is_integral<T>::value &&
+  !std::is_null_pointer<T>::value &&
   std::is_convertible<T,
     std::basic_string<
       typename Formatter<Streambuf>::char_type,
@@ -880,6 +885,7 @@ typename std::enable_if<
       std::basic_string<typename Formatter<Streambuf>::char_type,
         typename Formatter<Streambuf>::traits_type>>::value &&
     !std::is_pointer<T>::value &&
+    !std::is_null_pointer<T>::value &&
     !_Formatter::is_iterable<T>::value
   >::type Formatter<Streambuf>::printGeneric(
       const FormatterItem&, T)
@@ -1029,11 +1035,11 @@ typename std::enable_if<!std::is_convertible<T,
 
 template <typename Streambuf>
 template <typename T>
-inline
-typename std::enable_if<std::is_pointer<T>::value>::type
+inline typename std::enable_if<std::is_pointer<T>::value ||
+                               std::is_null_pointer<T>::value>::type
   Formatter<Streambuf>::printPointer(const FormatterItem& fmt, T arg)
 {
-  if (arg)
+  if (static_cast<bool>(arg)) // silence a warning about nullptr
   {
     FormatterItem fmt2 = fmt;
 
@@ -1057,8 +1063,8 @@ typename std::enable_if<std::is_pointer<T>::value>::type
 
 template <typename Streambuf>
 template <typename T>
-inline
-typename std::enable_if<!std::is_pointer<T>::value>::type
+inline typename std::enable_if<!std::is_pointer<T>::value &&
+                               !std::is_null_pointer<T>::value>::type
   Formatter<Streambuf>::printPointer(const FormatterItem&, T)
 {
   FORMAT_ERROR(FormatError::IncompatibleType);

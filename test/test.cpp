@@ -301,13 +301,13 @@ TEST_CASE("pointer/null", "null pointer argument")
 {
   if (sizeof(void*) == 4)
   {
-    testCase("aa (nil) bb", "aa %s bb", (void*)nullptr);
-    testCase("aa                (nil) bb", "aa %20p bb", (void*)nullptr);
+    testCase("aa (nil) bb", "aa %s bb", nullptr);
+    testCase("aa                (nil) bb", "aa %20p bb", nullptr);
   }
   else if (sizeof(void*) == 8)
   {
-    testCase("aa (nil) bb", "aa %s bb", (void*)nullptr);
-    testCase("aa                (nil) bb", "aa %20p bb", (void*)nullptr);
+    testCase("aa (nil) bb", "aa %s bb", nullptr);
+    testCase("aa                (nil) bb", "aa %20p bb", nullptr);
   }
   else
   {
