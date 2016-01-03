@@ -401,6 +401,7 @@ class Formatter
     void printGeneric(const FormatterItem&, bool arg);
     void printGeneric(const FormatterItem&, char_type arg);
     void printGeneric(const FormatterItem&, const char_type* arg);
+    void printGeneric(const FormatterItem&, char_type* arg);
     template <typename T>
     typename std::enable_if<std::is_integral<T>::value>::type
       printGeneric(const FormatterItem& fmt, T arg);
@@ -791,6 +792,14 @@ void Formatter<Streambuf>::printGeneric(
   m_streambuf.sputn(arg, size);
 
   printPostFill(fmt, size);
+}
+
+template <typename Streambuf>
+inline
+void Formatter<Streambuf>::printGeneric(
+    const FormatterItem& fmt, char_type* arg)
+{
+  return printGeneric(fmt, static_cast<const char_type*>(arg));
 }
 
 template <typename Streambuf>

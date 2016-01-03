@@ -315,6 +315,19 @@ TEST_CASE("pointer/null", "null pointer argument")
   }
 }
 
+TEST_CASE("pointer/char", "char pointer argument")
+{
+  std::unique_ptr<char[]> s{ new char[3]{'n', 'o', '\0'} };
+  testCase("aa no bb", "aa %s bb", s.get());
+  char* ptr = reinterpret_cast<char*>(0xdeadcafe);
+  if (sizeof(void*) == 4)
+    testCase("aa 0xdeadcafe bb", "aa %p bb", ptr);
+  else if (sizeof(void*) == 8)
+    testCase("aa 0x00000000deadcafe bb", "aa %p bb", ptr);
+  else
+    std::cout << "can't test char pointers, unknown architecture" << std::endl;
+}
+
 TEST_CASE("float/%f", "float argument with %f")
 {
   testCase("aa 3.500000 bb", "aa %f bb", 3.5);
